@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Certificado {{ certificate.code }}{% endblock %}
+{% block content %}
+{% with c=certificate %}
+<div class="container section" style="max-width:1100px">
+  <a class="small muted" href="{% url 'certificates:list' %}">{% icon "arrow-left" 14 %} Mis certificados</a>
+  <div class="flex justify-between items-center wrap gap-2 mt-1 mb-3">
+    <div>
+      <h1 style="font-size:28px;margin:0">{{ c.course_title }}</h1>
+      <p class="muted mb-0">Certificado emitido a {{ c.holder_name }} · {{ c.issued_at|date:"j \d\e F \d\e Y" }}</p>
+    </div>
+    {% if c.is_revoked %}<span class="pill pill-red">Revocado</span>{% else %}<span class="pill pill-success">{% icon "shield-check" 13 %} Válido</span>{% endif %}
+  </div>
+  <div class="grid-2" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start">
+    <div>{% include "certificates/paper.html" %}</div>
+    <aside class="card card-pad">
+      <h3>Descargar y compartir</h3>
+      <div style="display:grid;gap:10px" class="mt-2">
+        <a class="btn btn-primary btn-lg" href="{% url 'certificates:pdf' c.code %}?descargar=1">{% icon "download" 18 %} Descargar PDF</a>
+        <a class="btn btn-lg" href="{% url 'certificates:pdf' c.code %}" target="_blank" rel="noopener">{% icon "printer" 18 %} Abrir para imprimir</a>
+        <a class="btn btn-lg" style="--btn-bg:#0A66C2;--btn-fg:#fff;--btn-bd:#0A66C2" href="{{ linkedin_url }}" target="_blank" rel="noopener">{% icon "linkedin" 18 %} Agregar a LinkedIn</a>
+        <button class="btn btn-ghost" type="button" data-copy="{{ verify_url }}">{% icon "link" 17 %} Copiar enlace de verificación</button>
+      </div>
+      <hr>
+      <dl class="kv">
+        <dt>Código</dt><dd>{{ c.code }}</dd>
+        <dt>Calificación</dt><dd>{% if c.score is not None %}{{ c.score }}%{% else %}—{% endif %}</dd>
+        <dt>Duración</dt><dd>{{ c.hours|floatformat:"-1" }} horas</dd>
+        <dt>Emisor</dt><dd>{{ CAMPUS_COMPANY }}</dd>
+      </dl>
+      <p class="small muted mt-2 mb-0">Cualquier persona puede comprobar la autenticidad escaneando el QR del PDF o ingresando el código en la página de verificación.</p>
+    </aside>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

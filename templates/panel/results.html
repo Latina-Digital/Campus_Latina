@@ -1,0 +1,53 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Resultados{% endblock %}
+{% block panel %}
+<div class="panel-head">
+  <div><h1>Resultados de evaluaciones</h1><p>Filtra por curso, colaborador, supervisor o fechas y exporta a Excel.</p></div>
+  <div class="toolbar">
+    <a class="btn" href="?{% query_replace exportar='csv' page='' %}">{% icon "file-text" 16 %} CSV</a>
+    <a class="btn btn-navy" href="?{% query_replace exportar='xlsx' page='' %}">{% icon "file-spreadsheet" 16 %} Excel</a>
+  </div>
+</div>
+<form class="card card-pad mb-2">
+  <div class="grid-4" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    <div class="field mb-0"><label>Colaborador</label><input class="input" name="q" value="{{ g.q }}" placeholder="Nombre o usuario"></div>
+    <div class="field mb-0"><label>Curso</label><select class="input select" name="curso"><option value="">Todos</option>{% for c in courses %}<option value="{{ c.pk }}" {% if g.curso == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.title }}</option>{% endfor %}</select></div>
+    <div class="field mb-0"><label>Supervisor</label><input class="input" name="supervisor" value="{{ g.supervisor }}"></div>
+    <div class="field mb-0"><label>Estado</label><select class="input select" name="estado"><option value="">Todos</option><option value="aprobado" {% if g.estado == "aprobado" %}selected{% endif %}>Aprobados</option><option value="reprobado" {% if g.estado == "reprobado" %}selected{% endif %}>Reprobados</option></select></div>
+    <div class="field mb-0"><label>Desde</label><input class="input" type="date" name="desde" value="{{ g.desde }}"></div>
+    <div class="field mb-0"><label>Hasta</label><input class="input" type="date" name="hasta" value="{{ g.hasta }}"></div>
+  </div>
+  <div class="flex gap-2 items-center wrap mt-2">
+    <label class="field-check small"><input class="checkbox" type="checkbox" name="primer" value="1" {% if g.primer == "1" %}checked{% endif %}> Solo el primer intento de cada persona</label>
+    <button class="btn btn-primary btn-sm">{% icon "filter" 15 %} Filtrar</button>
+    <a class="btn btn-sm" href="{% url 'panel:results' %}">Limpiar</a>
+  </div>
+</form>
+<div class="grid-4 mb-2" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card"><div class="stat-icon navy">{% icon "clipboard-list" 20 %}</div><div><div class="stat-value">{{ summary.n }}</div><div class="stat-label">Intentos</div></div></div>
+  <div class="stat-card"><div class="stat-icon gold">{% icon "gauge" 20 %}</div><div><div class="stat-value">{{ summary.avg }}%</div><div class="stat-label">Promedio</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">{% icon "target" 20 %}</div><div><div class="stat-value">{{ summary.rate }}%</div><div class="stat-label">Aprobación</div></div></div>
+</div>
+<div class="card table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Colaborador</th><th>Curso</th><th>Fecha</th><th>Duración</th><th>Aciertos</th><th>Nota</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for a in page.object_list %}
+      <tr>
+        <td><div class="cell-user">{% avatar a.user 32 %}<div><strong>{{ a.user.display_name }}</strong><small>{{ a.user.supervisor|default:"—" }}</small></div></div></td>
+        <td>{{ a.quiz.course.title }}</td>
+        <td>{{ a.finished_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ a.duration_display }}</td>
+        <td>{{ a.correct_count }}/{{ a.total }}</td>
+        <td><strong>{{ a.score }}%</strong></td>
+        <td>{% if a.passed %}<span class="pill pill-success">Aprobado</span>{% else %}<span class="pill pill-red">Reprobado</span>{% endif %}{% if a.timed_out %} <span class="pill pill-neutral" title="Tiempo agotado">{% icon "timer-off" 12 %}</span>{% endif %}</td>
+        <td class="actions"><a class="btn btn-sm" href="{% url 'panel:attempt_report' a.pk %}" target="_blank">{% icon "file-text" 14 %} Informe</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center muted" style="padding:30px">No hay resultados con esos filtros.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

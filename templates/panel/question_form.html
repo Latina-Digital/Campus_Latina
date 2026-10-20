@@ -1,0 +1,14 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Editar pregunta{% endblock %}
+{% block panel %}
+<a class="small muted" href="{% url 'panel:questions' course.pk %}">{% icon "arrow-left" 14 %} Banco de preguntas</a>
+<div class="panel-head mt-1"><div><h1>Editar pregunta</h1><p>{{ course.title }}</p></div></div>
+<form method="post" class="card card-pad" style="max-width:920px">
+  {% csrf_token %}
+  {% include "panel/_question_fields.html" %}
+  <div class="flex gap-1 justify-between wrap">
+    <div class="flex gap-1"><button class="btn btn-primary" name="action" value="save">{% icon "save" 16 %} Guardar</button><a class="btn" href="{% url 'panel:questions' course.pk %}">Cancelar</a></div>
+    <button class="btn btn-danger" name="action" value="delete" formnovalidate data-confirm="¿Eliminar esta pregunta?">{% icon "trash-2" 16 %} Eliminar</button>
+  </div>
+</form>
+{% endblock %}

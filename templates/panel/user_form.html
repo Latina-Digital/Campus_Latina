@@ -1,0 +1,7 @@
+{% extends "panel/generic_form.html" %}
+{% block fields %}
+<datalist id="supervisores">{% for s in supervisores %}<option value="{{ s }}">{% endfor %}</datalist>
+{% if object and object.origin == "syspro" %}<div class="alert mb-2">{% icon "info" 18 %}<span>Este usuario ingresa con su cuenta corporativa (Syspro). Si le asignas una contraseña aquí pasará a ingresar con la contraseña del campus.</span></div>{% endif %}
+<div class="form-grid">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>
+<div class="alert mt-1">{% icon "shield" 18 %}<span><strong>Administrador, Jefe nacional y Jefe de ventas</strong> tienen acceso al panel. Solo los <strong>Administradores</strong> gestionan usuarios.</span></div>
+{% endblock %}

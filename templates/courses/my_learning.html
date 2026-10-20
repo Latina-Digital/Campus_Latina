@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Mi aprendizaje{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "book-open-check" 14 %} Tu espacio</div>
+    <h1>Mi aprendizaje</h1>
+    <p>Retoma tus cursos, revisa lo que completaste y los cursos que guardaste para después.</p>
+  </div>
+</header>
+<div class="container section">
+  <nav class="tabs">
+    <a href="?tab=en-curso" class="{% if tab == 'en-curso' %}active{% endif %}">{% icon "play-circle" 16 %} En curso <span class="count">{{ counts.en_curso }}</span></a>
+    <a href="?tab=completados" class="{% if tab == 'completados' %}active{% endif %}">{% icon "circle-check-big" 16 %} Completados <span class="count">{{ counts.completados }}</span></a>
+    <a href="?tab=guardados" class="{% if tab == 'guardados' %}active{% endif %}">{% icon "bookmark" 16 %} Guardados <span class="count">{{ counts.guardados }}</span></a>
+  </nav>
+  {% if courses %}
+    <div class="course-grid">{% for course in courses %}{% include "partials/course_card.html" %}{% endfor %}</div>
+  {% else %}
+    <div class="empty">
+      {% if tab == 'guardados' %}{% icon "bookmark" 44 %}<h3>No tienes cursos guardados</h3><p>Usa “Guardar para después” en cualquier curso.</p>
+      {% elif tab == 'completados' %}{% icon "flag" 44 %}<h3>Aún no completas ningún curso</h3><p>¡El primero es el más importante!</p>
+      {% else %}{% icon "rocket" 44 %}<h3>No tienes cursos en progreso</h3><p>Encuentra uno que te interese y comienza hoy.</p>{% endif %}
+      <a class="btn btn-primary" href="{% url 'courses:explore' %}">Explorar cursos</a>
+    </div>
+  {% endif %}
+
+  {% if attempts %}
+  <section class="section">
+    <div class="section-head"><h2>Historial de evaluaciones</h2></div>
+    <div class="card table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Curso</th><th>Fecha</th><th>Nota</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          {% for a in attempts %}
+          <tr>
+            <td><strong>{{ a.quiz.course.title }}</strong></td>
+            <td>{{ a.finished_at|date:"d/m/Y H:i" }}</td>
+            <td><strong>{{ a.score }}%</strong></td>
+            <td>{% if a.passed %}<span class="pill pill-success">Aprobado</span>{% else %}<span class="pill pill-red">Reprobado</span>{% endif %}{% if a.timed_out %} <span class="pill pill-neutral">Tiempo agotado</span>{% endif %}</td>
+            <td class="actions"><a class="btn btn-sm" href="{% url 'assessments:result' a.pk %}">Ver revisión</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+<div class="container" style="padding-top:28px">
+  <section class="hero-dash">
+    <div class="hero-copy">
+      <div class="eyebrow" style="color:var(--gold-500)">{% now "l j \d\e F" %}</div>
+      <h1>¡Hola, {{ user.short_name }}!</h1>
+      <p>{% if in_progress %}Continúa donde te quedaste. Cada lección te acerca a tu próximo certificado.{% elif completed_count %}¡Buen trabajo! Elige tu próximo curso y sigue sumando puntos y certificados.{% else %}Elige tu primer curso y empieza a sumar puntos y certificados.{% endif %}</p>
+      <div class="hero-level">
+        <div class="lvl-icon">{% icon my_stats.level.icon 22 %}</div>
+        <div style="flex:1">
+          <strong>Nivel {{ my_stats.level.number }} · {{ my_stats.level.name }}</strong>
+          <small>{{ my_stats.points }} puntos{% if my_stats.level.next_name %} · te faltan {{ my_stats.level.missing }} para {{ my_stats.level.next_name }}{% endif %}</small>
+          <div class="progress gold thin"><span style="width:{{ my_stats.level.progress }}%"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true"><img src="{% static 'img/banner-latina.jpeg' %}" alt=""></div>
+  </section>
+
+  <div class="grid-4 mt-3">
+    <div class="stat-card"><div class="stat-icon navy">{% icon "book-open" 22 %}</div><div><div class="stat-value">{{ in_progress|length }}</div><div class="stat-label">En curso</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">{% icon "circle-check-big" 22 %}</div><div><div class="stat-value">{{ completed_count }}</div><div class="stat-label">Completados</div></div></div>
+    <a class="stat-card" href="{% url 'certificates:list' %}" style="text-decoration:none"><div class="stat-icon gold">{% icon "award" 22 %}</div><div><div class="stat-value">{{ my_stats.certs }}</div><div class="stat-label">Certificados</div></div></a>
+    <a class="stat-card" href="{% url 'core:ranking' %}" style="text-decoration:none"><div class="stat-icon red">{% icon "trophy" 22 %}</div><div><div class="stat-value">{% if my_rank %}#{{ my_rank }}{% else %}—{% endif %}</div><div class="stat-label">Ranking {% if ranking_total %}de {{ ranking_total }}{% endif %}</div></div></a>
+  </div>
+
+  {% if announcements %}
+  <section class="section" style="padding-bottom:0">
+    <div class="grid-{% if announcements|length == 1 %}2{% else %}3{% endif %}" style="{% if announcements|length == 1 %}grid-template-columns:1fr{% endif %}">
+      {% for a in announcements %}
+      <div class="announce {{ a.tone }}">
+        <div class="stat-icon {% if a.tone == 'urgente' %}red{% elif a.tone == 'nuevo' %}gold{% else %}navy{% endif %}" style="width:40px;height:40px">{% if a.tone == 'urgente' %}{% icon "megaphone" 19 %}{% elif a.tone == 'nuevo' %}{% icon "sparkles" 19 %}{% else %}{% icon "info" 19 %}{% endif %}</div>
+        <div><h4>{{ a.title }}</h4><p>{{ a.body }}</p>{% if a.link_url %}<a class="small" href="{{ a.link_url }}" style="font-weight:600">{{ a.link_label|default:"Ver más" }} →</a>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if mandatory %}
+  <section class="section">
+    <div class="section-head"><div><div class="eyebrow">{% icon "star" 13 %} Requeridos por la empresa</div><h2>Cursos obligatorios</h2></div></div>
+    <div class="course-grid">{% for course in mandatory %}{% include "partials/course_card.html" %}{% endfor %}</div>
+  </section>
+  {% endif %}
+
+  <section class="section">
+    <div class="section-head">
+      <div><h2>Continuar aprendiendo</h2><p>Tus cursos en progreso</p></div>
+      <a class="btn btn-ghost" href="{% url 'courses:my_learning' %}">Mi aprendizaje {% icon "arrow-right" 16 %}</a>
+    </div>
+    {% if in_progress %}
+    <div class="course-grid">
+      {% for enrollment in in_progress %}{% with course=enrollment.course %}{% include "partials/course_card.html" %}{% endwith %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">{% icon "rocket" 44 %}<h3>Aún no has empezado ningún curso</h3><p>Explora el catálogo y elige el que más te ayude en tus ventas.</p><a class="btn btn-primary" href="{% url 'courses:explore' %}">Explorar cursos</a></div>
+    {% endif %}
+  </section>
+
+  {% if paths %}
+  <section class="section">
+    <div class="section-head"><div><h2>Rutas de aprendizaje</h2><p>Programas completos para dominar una línea de productos</p></div><a class="btn btn-ghost" href="{% url 'courses:paths' %}">Ver rutas {% icon "arrow-right" 16 %}</a></div>
+    <div class="grid-3">
+      {% for item in paths %}
+      <a class="card card-pad" href="{{ item.path.get_absolute_url }}" style="color:var(--text);text-decoration:none">
+        <div class="flex items-center gap-2 mb-1"><div class="stat-icon navy" style="width:40px;height:40px">{% icon "route" 20 %}</div>{% brand_badge item.path.brand %}</div>
+        <h3 class="mb-1">{{ item.path.title }}</h3>
+        <p class="small muted">{{ item.path.summary|truncatechars:110 }}</p>
+        <div class="flex justify-between small" style="font-weight:600"><span>{{ item.done }} de {{ item.courses|length }} cursos</span><span>{{ item.percent }}%</span></div>
+        <div class="progress mt-1 {% if item.percent == 100 %}done{% endif %}"><span style="width:{{ item.percent }}%"></span></div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="section">
+    <div class="section-head"><div><h2>Recomendados para ti</h2><p>Cursos que aún no has comenzado</p></div><a class="btn btn-ghost" href="{% url 'courses:explore' %}">Explorar todo {% icon "arrow-right" 16 %}</a></div>
+    {% if recommended %}
+    <div class="course-grid">{% for course in recommended %}{% include "partials/course_card.html" %}{% endfor %}</div>
+    {% else %}
+    <div class="empty">{% icon "party-popper" 44 %}<h3>¡Ya estás inscrito en todos los cursos!</h3><p>Pronto publicaremos nuevo contenido.</p></div>
+    {% endif %}
+  </section>
+
+  <section class="section">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h3>{% icon "layout-grid" 18 %} Explora por categoría</h3></div>
+        <div class="card-body chips">
+          {% for c in categories %}<a class="chip" href="{% url 'courses:explore' %}?categoria={{ c.slug }}">{% icon c.icon 16 %} {{ c.name }} <span class="muted">{{ c.n }}</span></a>{% endfor %}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>{% icon "trophy" 18 %} Top del campus</h3><a class="small" href="{% url 'core:ranking' %}">Ver ranking</a></div>
+        <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+          {% for row in top3 %}
+          <div class="flex items-center gap-2" style="padding:10px 0;{% if not forloop.last %}border-bottom:1px solid var(--border){% endif %}">
+            <span style="font:800 18px var(--font-head);width:28px;color:{% cycle 'var(--gold-600)' 'var(--muted)' 'var(--accent)' %}">#{{ row.rank }}</span>
+            {% avatar row.user 36 %}
+            <div style="flex:1;min-width:0"><strong>{{ row.user.display_name }}</strong><br><small class="muted">{{ row.level.name }} · {{ row.certs }} certificados</small></div>
+            <strong>{{ row.points }} pts</strong>
+          </div>
+          {% empty %}
+          <p class="muted">Aún no hay puntajes. ¡Sé el primero!</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

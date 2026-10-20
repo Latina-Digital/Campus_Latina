@@ -1,0 +1,37 @@
+{% extends "panel/base.html" %}{% load static %}
+{% block title %}Panel · Lección{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'vendor/quill.snow.css' %}"><script defer src="{% static 'vendor/quill.js' %}"></script>{% endblock %}
+{% block crumb %}Cursos / {{ course.title }} / Lección{% endblock %}
+{% block panel %}
+<a class="small muted" href="{% url 'panel:course_builder' course.pk %}">{% icon "arrow-left" 14 %} {{ course.title }}</a>
+<div class="panel-head mt-1"><div><h1>{% if lesson %}Editar lección{% else %}Nueva lección{% endif %}</h1><p>Elige el tipo de contenido: video subido, video de YouTube, lectura o documento PDF.</p></div></div>
+<form method="post" enctype="multipart/form-data" class="card card-pad" style="max-width:980px" x-data="{ kind: '{{ form.kind.value|default:'lectura' }}' }">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error mb-2">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid">
+    {% include "partials/field.html" with field=form.title %}
+    {% include "partials/field.html" with field=form.module %}
+    {% include "partials/field.html" with field=form.kind %}
+    {% include "partials/field.html" with field=form.duration_minutes %}
+    <div class="span-2" x-show="kind === 'video'">{% include "partials/field.html" with field=form.video %}{% include "partials/field.html" with field=form.require_full_watch %}</div>
+    <div class="span-2" x-show="kind === 'youtube'" x-cloak>{% include "partials/field.html" with field=form.youtube_url %}</div>
+    <div class="span-2" x-show="kind === 'documento'" x-cloak>{% include "partials/field.html" with field=form.document %}</div>
+    <div class="span-2">
+      <div class="field {% if form.content.errors %}has-error{% endif %}">
+        <label for="{{ form.content.id_for_label }}"><span x-text="kind === 'lectura' ? 'Contenido de la lectura' : 'Notas o resumen (opcional)'">Contenido</span></label>
+        {{ form.content }}
+        {{ form.content.errors }}
+      </div>
+    </div>
+    {% include "partials/field.html" with field=form.order %}
+  </div>
+  <div class="flex gap-1 justify-between wrap mt-2">
+    <div class="flex gap-1 wrap">
+      <button class="btn btn-primary" name="action" value="save">{% icon "save" 16 %} Guardar</button>
+      <button class="btn btn-navy" name="action" value="save_add">{% icon "plus" 16 %} Guardar y agregar otra</button>
+      <a class="btn" href="{% url 'panel:course_builder' course.pk %}">Cancelar</a>
+    </div>
+    {% if lesson %}<button class="btn btn-danger" name="action" value="delete" formnovalidate data-confirm="¿Eliminar esta lección?">{% icon "trash-2" 16 %} Eliminar</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

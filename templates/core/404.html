@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Página no encontrada{% endblock %}
+{% block content %}
+<div class="container section text-center" style="padding:90px 24px">
+  <div class="stat-icon red" style="width:72px;height:72px;margin:0 auto 18px">{% icon "map-pinned" 34 %}</div>
+  <h1>Esta página no existe</h1>
+  <p class="muted">Puede que el enlace esté roto o que el contenido haya sido retirado.</p>
+  <a class="btn btn-primary mt-2" href="/">{% icon "house" 17 %} Volver al inicio</a>
+</div>
+{% endblock %}

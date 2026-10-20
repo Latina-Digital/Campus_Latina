@@ -1,0 +1,27 @@
+{% with p=progress|get_item:course.pk %}
+<a class="course-card" href="{{ course.get_absolute_url }}">
+  <div class="course-cover">
+    {% if course.cover %}<img src="{{ course.cover.url }}" alt="" loading="lazy">{% else %}<div class="cover-fallback">{% icon course.category.icon|default:"book-open" 46 %}</div>{% endif %}
+    {% brand_badge course.brand %}
+    {% if course.is_mandatory %}<span class="cover-flag pill pill-gold">{% icon "star" 12 %} Obligatorio</span>{% elif not course.is_published %}<span class="cover-flag pill pill-neutral">Borrador</span>{% endif %}
+    <span class="duration">{% icon "clock" 13 %} {{ course.duration_display }}</span>
+  </div>
+  <div class="course-body">
+    <div class="course-cat">{{ course.category.name|default:"General" }}</div>
+    <h3 class="course-title">{{ course.title }}</h3>
+    <p class="course-summary">{{ course.summary }}</p>
+    {% if p %}
+      <div class="course-progress">
+        <div class="row"><span>{% if p == 100 %}¡Completado!{% else %}Tu avance{% endif %}</span><span>{{ p }}%</span></div>
+        <div class="progress {% if p == 100 %}done{% endif %}"><span style="width:{{ p }}%"></span></div>
+      </div>
+    {% else %}
+      <div class="course-meta">
+        <span>{% icon "signal" 14 %} {{ course.get_level_display }}</span>
+        {% if course.n_lessons %}<span>{% icon "list-video" 14 %} {{ course.n_lessons }} lecciones</span>{% endif %}
+        {% if course.rating %}<span>{% stars course.rating 12 %} {{ course.rating|floatformat:1 }}</span>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</a>
+{% endwith %}

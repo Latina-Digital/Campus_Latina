@@ -1,0 +1,36 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Cursos{% endblock %}
+{% block panel %}
+<div class="panel-head">
+  <div><h1>Cursos</h1><p>Crea cursos, organiza sus módulos y lecciones y configura la evaluación final.</p></div>
+  <div class="toolbar">
+    <form><div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" value="{{ q }}" placeholder="Buscar curso…" style="min-height:40px"></div></form>
+    <a class="btn btn-primary" href="{% url 'panel:course_create' %}">{% icon "plus" 16 %} Nuevo curso</a>
+  </div>
+</div>
+<div class="card table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Curso</th><th>Marca</th><th>Lecciones</th><th>Inscritos</th><th>Certificados</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for c in object_list %}
+      <tr>
+        <td><div class="cell-media">{% if c.cover %}<img src="{{ c.cover.url }}" alt="">{% else %}<span class="stat-icon navy" style="width:44px;height:44px">{% icon "graduation-cap" 20 %}</span>{% endif %}<div><strong>{{ c.title }}</strong><br><small class="muted">{{ c.category.name|default:"Sin categoría" }} · {{ c.get_level_display }}</small></div></div></td>
+        <td>{% brand_badge c.brand %}</td>
+        <td>{{ c.n_lessons }}</td>
+        <td>{{ c.n_enrolled }}</td>
+        <td>{{ c.n_certs }}</td>
+        <td>{% if c.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}{% if c.is_mandatory %} <span class="pill pill-gold">Obligatorio</span>{% endif %}</td>
+        <td class="actions">
+          <a class="btn btn-sm btn-navy" href="{% url 'panel:course_builder' c.pk %}">{% icon "blocks" 14 %} Contenido</a>
+          <a class="btn btn-sm" href="{{ c.get_absolute_url }}" title="Ver como estudiante">{% icon "eye" 14 %}</a>
+          <a class="btn btn-sm btn-danger" href="{% url 'panel:course_delete' c.pk %}" title="Eliminar">{% icon "trash-2" 14 %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7"><div class="text-center muted" style="padding:30px">{% icon "graduation-cap" 32 %}<p class="mt-1">No hay cursos todavía.</p><a class="btn btn-primary" href="{% url 'panel:course_create' %}">Crear el primero</a></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/pagination.html" with page=page_obj %}
+{% endblock %}

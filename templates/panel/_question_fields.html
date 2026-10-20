@@ -1,0 +1,13 @@
+{% include "partials/field.html" with field=form.text %}
+<div class="form-grid">
+  {% for f in form.choice_fields %}
+  <div class="field {% if f.errors %}has-error{% endif %}">
+    <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} <span style="color:var(--accent)">*</span>{% endif %}</label>
+    {{ f }}{{ f.errors }}
+  </div>
+  {% endfor %}
+</div>
+<div class="form-grid">
+  {% include "partials/field.html" with field=form.correct %}
+  {% include "partials/field.html" with field=form.explanation %}
+</div>

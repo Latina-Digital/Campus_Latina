@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Mi equipo{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "users-round" 14 %} Seguimiento</div>
+    <h1>Equipo de {{ selected|title }}</h1>
+    <p>Avance de formación de cada integrante: puntos, cursos y certificados.</p>
+    {% if supervisors %}
+    <form class="flex gap-2 wrap mt-3" style="max-width:520px">
+      <select name="supervisor" class="input select" style="flex:1" aria-label="Supervisor">
+        {% for s in supervisors %}<option value="{{ s }}" {% if s|lower == selected|lower %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-gold">Ver equipo</button>
+    </form>
+    {% endif %}
+  </div>
+</header>
+<div class="container section">
+  {% if rows %}
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Colaborador</th><th>Nivel</th><th>Puntos</th><th>En curso</th><th>Completados</th><th>Certificados</th><th>Promedio</th><th>Última actividad</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><div class="cell-user">{% avatar r.user 34 %}<div><a href="{% url 'accounts:public_profile' r.user.username %}"><strong>{{ r.user.display_name }}</strong></a><small>@{{ r.user.username }}</small></div></div></td>
+          <td>{{ r.level.name }}</td>
+          <td><strong>{{ r.stats.points }}</strong></td>
+          <td>{{ r.in_progress }}</td>
+          <td>{{ r.completed }}</td>
+          <td>{{ r.stats.certs }}</td>
+          <td>{% if r.stats.avg is not None %}{{ r.stats.avg }}%{% else %}—{% endif %}</td>
+          <td>{% if r.user.last_activity %}{{ r.user.last_activity|timesince }}{% else %}<span class="pill pill-red">Sin actividad</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">{% icon "users-round" 44 %}<h3>No hay integrantes asignados</h3><p>Los ejecutivos aparecen aquí cuando su campo “Supervisor” coincide con tu nombre completo.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

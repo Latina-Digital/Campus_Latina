@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% load static %}
+{% block topbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="panel" x-data="{ side: false }">
+  <aside class="panel-side" :class="{ open: side }" @click.outside="side = false">
+    <a class="brand" href="{% url 'panel:dashboard' %}"><img src="{% static 'img/logo-mark.png' %}" alt="" style="height:38px"><span class="brand-text"><strong>CAMPUS <span>LATINA</span></strong><small>Panel de gestión</small></span></a>
+    <a href="{% url 'panel:dashboard' %}" class="{% if section == 'dashboard' %}active{% endif %}">{% icon "layout-dashboard" 18 %} Resumen</a>
+    <div class="group">Formación</div>
+    <a href="{% url 'panel:course_list' %}" class="{% if section == 'courses' %}active{% endif %}">{% icon "graduation-cap" 18 %} Cursos</a>
+    <a href="{% url 'panel:path_list' %}" class="{% if section == 'paths' %}active{% endif %}">{% icon "route" 18 %} Rutas</a>
+    <a href="{% url 'panel:category_list' %}" class="{% if section == 'categories' %}active{% endif %}">{% icon "layout-grid" 18 %} Categorías</a>
+    <div class="group">Seguimiento</div>
+    <a href="{% url 'panel:results' %}" class="{% if section == 'results' %}active{% endif %}">{% icon "chart-column" 18 %} Resultados</a>
+    <a href="{% url 'panel:certificates' %}" class="{% if section == 'certificates' %}active{% endif %}">{% icon "award" 18 %} Certificados</a>
+    {% if user.is_admin %}<a href="{% url 'panel:user_list' %}" class="{% if section == 'users' %}active{% endif %}">{% icon "users-round" 18 %} Usuarios</a>{% endif %}
+    <div class="group">Contenido</div>
+    <a href="{% url 'panel:product_list' %}" class="{% if section == 'products' %}active{% endif %}">{% icon "package" 18 %} Productos</a>
+    <a href="{% url 'panel:line_list' %}" class="{% if section == 'lines' %}active{% endif %}">{% icon "tags" 18 %} Líneas de productos</a>
+    <a href="{% url 'panel:announcement_list' %}" class="{% if section == 'announcements' %}active{% endif %}">{% icon "megaphone" 18 %} Anuncios</a>
+    <div class="bottom">
+      <a href="{% url 'courses:home' %}">{% icon "external-link" 18 %} Ver el campus</a>
+      {% if user.is_superuser %}<a href="{% url 'admin:index' %}">{% icon "database" 18 %} Admin avanzado</a>{% endif %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn btn-ghost btn-block" style="--btn-fg:rgba(255,255,255,.75);justify-content:flex-start;padding-left:12px">{% icon "log-out" 18 %} Cerrar sesión</button></form>
+    </div>
+  </aside>
+  <div class="panel-main">
+    <header class="panel-top">
+      <button class="btn btn-ghost btn-icon menu-toggle" type="button" @click.stop="side = !side" aria-label="Menú">{% icon "menu" 20 %}</button>
+      <strong class="muted small" style="flex:1">{% block crumb %}Panel de gestión{% endblock %}</strong>
+      <button class="btn btn-ghost btn-icon" type="button" x-data="themeToggle" @click="toggle()" title="Cambiar tema"><span x-show="!isDark">{% icon "moon" 18 %}</span><span x-show="isDark" x-cloak>{% icon "sun" 18 %}</span></button>
+      {% avatar user 34 %}<span class="small" style="font-weight:600">{{ user.short_name }}</span>
+    </header>
+    <div class="panel-content">{% block panel %}{% endblock %}</div>
+  </div>
+</div>
+{% endblock %}

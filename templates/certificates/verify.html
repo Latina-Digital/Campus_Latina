@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Verificar certificado{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "shield-check" 14 %} Validación pública</div>
+    <h1>Verificar un certificado</h1>
+    <p>Comprueba la autenticidad de un certificado emitido por {{ CAMPUS_NAME }} de {{ CAMPUS_COMPANY }}.</p>
+    <form action="{% url 'certificates:verify' %}" class="flex gap-2 wrap mt-3" style="max-width:560px">
+      <input class="input" name="codigo" value="{{ code }}" placeholder="IL-2026-XXXXXXXX" style="flex:1;min-width:220px;text-transform:uppercase" required aria-label="Código del certificado">
+      <button class="btn btn-gold">{% icon "search-check" 17 %} Verificar</button>
+    </form>
+  </div>
+</header>
+<div class="container section" style="max-width:860px">
+  {% if code %}
+    {% if certificate and not certificate.is_revoked %}
+    <div class="card verify-result">
+      <div class="seal-ok">{% icon "badge-check" 34 %}</div>
+      <div style="flex:1">
+        <h2 style="margin:0">Certificado válido</h2>
+        <p class="muted">Este certificado fue emitido por {{ CAMPUS_COMPANY }} y se encuentra vigente.</p>
+        <dl class="kv">
+          <dt>Titular</dt><dd>{{ certificate.holder_name }}</dd>
+          <dt>Curso</dt><dd>{{ certificate.course_title }}</dd>
+          <dt>Fecha de emisión</dt><dd>{{ certificate.issued_at|date:"j \d\e F \d\e Y" }}</dd>
+          {% if certificate.score is not None %}<dt>Calificación</dt><dd>{{ certificate.score }}%</dd>{% endif %}
+          <dt>Duración</dt><dd>{{ certificate.hours|floatformat:"-1" }} horas</dd>
+          <dt>Código</dt><dd>{{ certificate.code }}</dd>
+        </dl>
+      </div>
+    </div>
+    {% elif certificate %}
+    <div class="card verify-result"><div class="seal-bad">{% icon "shield-x" 34 %}</div><div><h2 style="margin:0">Certificado revocado</h2><p class="muted mb-0">El código {{ code }} existe, pero el certificado fue anulado por la empresa.</p></div></div>
+    {% else %}
+    <div class="card verify-result"><div class="seal-bad">{% icon "search-x" 34 %}</div><div><h2 style="margin:0">No encontramos ese código</h2><p class="muted mb-0">Revisa que esté escrito tal como aparece en el certificado (por ejemplo IL-2026-AB12CD34).</p></div></div>
+    {% endif %}
+  {% else %}
+    <div class="empty">{% icon "scan-qr-code" 48 %}<h3>Escanea el QR o escribe el código</h3><p>El código aparece en la esquina superior derecha de cada certificado.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

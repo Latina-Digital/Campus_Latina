@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Mis certificados{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "award" 14 %} Tus logros</div>
+    <h1>Mis certificados</h1>
+    <p>Descarga tus certificados en PDF, compártelos en LinkedIn o envía el enlace de verificación.</p>
+  </div>
+</header>
+<div class="container section">
+  {% if certificates %}
+  <div class="course-grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+    {% for c in certificates %}
+    <article class="card cert-card">
+      <a href="{{ c.get_absolute_url }}" class="cert-thumb" aria-label="Ver certificado de {{ c.course_title }}">{% include "certificates/paper.html" %}</a>
+      <div class="card-body">
+        <div class="course-cat">{{ c.course.category.name|default:"Curso" }}</div>
+        <h3 class="mt-1 mb-1">{{ c.course_title }}</h3>
+        <p class="small muted mb-2">{{ c.issued_at|date:"d \d\e F, Y" }}{% if c.score is not None %} · Nota {{ c.score }}%{% endif %} · {{ c.code }}</p>
+        <div class="cert-actions">
+          <a class="btn btn-navy btn-sm" href="{% url 'certificates:pdf' c.code %}?descargar=1">{% icon "download" 15 %} PDF</a>
+          <a class="btn btn-sm" href="{{ c.get_absolute_url }}">{% icon "share-2" 15 %} Compartir</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">{% icon "award" 48 %}<h3>Aún no tienes certificados</h3><p>Completa un curso y aprueba su evaluación con al menos 70% para obtener tu primer certificado.</p><a class="btn btn-primary" href="{% url 'courses:explore' %}">Explorar cursos</a></div>
+  {% endif %}
+</div>
+{% endblock %}

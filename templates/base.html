@@ -1,0 +1,31 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Inicio{% endblock %} · {{ CAMPUS_NAME }}</title>
+  <meta name="description" content="{% block description %}Plataforma de formación de Industrial Latina e Induless: cursos, evaluaciones y certificados sobre nuestros productos.{% endblock %}">
+  <meta name="theme-color" content="#0A1C40">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <script>
+    try { var t = localStorage.getItem("campus-theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/campus.css' %}">
+  {% block head %}{% endblock %}
+  <script defer src="{% static 'vendor/lucide.min.js' %}"></script>
+  <script defer src="{% static 'vendor/canvas-confetti.min.js' %}"></script>
+  <script defer src="{% static 'js/campus.js' %}"></script>
+  <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
+</head>
+<body class="{% block body_class %}{% endblock %}" {% block body_attrs %}{% endblock %}>
+  <a class="sr-only" href="#contenido">Saltar al contenido</a>
+  {% block topbar %}{% include "partials/topbar.html" %}{% endblock %}
+  <main id="contenido">{% block content %}{% endblock %}</main>
+  {% block footer %}{% include "partials/footer.html" %}{% endblock %}
+  {% include "partials/messages.html" %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

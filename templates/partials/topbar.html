@@ -1,0 +1,86 @@
+{% load static %}
+{% with ns=request.resolver_match.namespace un=request.resolver_match.url_name %}
+<header class="topbar" x-data="{ drawer: false }">
+  <div class="container topbar-inner">
+    {% if user.is_authenticated %}
+    <button class="btn btn-ghost btn-icon menu-toggle" type="button" @click="drawer = true" aria-label="Abrir menú">{% icon "menu" 22 %}</button>
+    {% endif %}
+    <a class="brand" href="{% if user.is_authenticated %}{% url 'courses:home' %}{% else %}{% url 'core:landing' %}{% endif %}" aria-label="{{ CAMPUS_NAME }} - inicio">
+      <img src="{% static 'img/logo-mark.png' %}" alt="">
+      <span class="brand-text"><strong>CAMPUS <span>LATINA</span></strong><small>Industrial Latina · Induless</small></span>
+    </a>
+
+    {% if user.is_authenticated %}
+    <nav class="nav-links" aria-label="Principal">
+      <a href="{% url 'courses:home' %}" class="{% if ns == 'courses' and un == 'home' %}active{% endif %}">{% icon "house" 17 %}<span class="lbl-md">Inicio</span></a>
+      <a href="{% url 'courses:explore' %}" class="{% if ns == 'courses' and un in 'explore detail lesson' %}active{% endif %}">{% icon "compass" 17 %}Explorar</a>
+      <a href="{% url 'courses:paths' %}" class="{% if un == 'paths' or un == 'path_detail' %}active{% endif %}">{% icon "route" 17 %}Rutas</a>
+      <a href="{% url 'courses:my_learning' %}" class="{% if un == 'my_learning' %}active{% endif %}">{% icon "book-open-check" 17 %}<span class="lbl-md">Mi aprendizaje</span></a>
+      <a href="{% url 'catalog:list' %}" class="{% if ns == 'catalog' %}active{% endif %}">{% icon "package" 17 %}Productos</a>
+      <a href="{% url 'core:ranking' %}" class="{% if un == 'ranking' %}active{% endif %}">{% icon "trophy" 17 %}Ranking</a>
+    </nav>
+    <form class="nav-search" action="{% url 'courses:explore' %}" role="search">
+      <div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" placeholder="Buscar cursos o productos…" value="{{ request.GET.q }}" aria-label="Buscar"></div>
+    </form>
+    {% endif %}
+
+    <div class="nav-actions" {% if not user.is_authenticated %}style="margin-left:auto"{% endif %}>
+      <button class="btn btn-ghost btn-icon" type="button" x-data="themeToggle" @click="toggle()" :aria-label="isDark ? 'Usar tema claro' : 'Usar tema oscuro'" title="Cambiar tema">
+        <span x-show="!isDark">{% icon "moon" 19 %}</span><span x-show="isDark" x-cloak>{% icon "sun" 19 %}</span>
+      </button>
+      {% if user.is_authenticated %}
+        {% if user.is_staff %}<a class="btn btn-gold btn-sm" href="{% url 'panel:dashboard' %}" title="Panel de gestión">{% icon "layout-dashboard" 16 %}<span class="lbl-md">Panel</span></a>{% endif %}
+        <div class="dropdown" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+          <button class="user-chip" type="button" @click="open = !open" :aria-expanded="open">
+            {% avatar user 34 %}
+            <span class="who">{{ user.short_name }}<span class="lvl">{{ my_stats.level.name }} · {{ my_stats.points }} pts</span></span>
+            {% icon "chevron-down" 15 "muted" %}
+          </button>
+          <div class="dropdown-menu" x-show="open" x-cloak x-transition.origin.top.right>
+            <div class="dropdown-head">
+              {% avatar user 44 %}
+              <div style="flex:1;min-width:0">
+                <strong>{{ user.display_name }}</strong>
+                <small class="muted">{{ user.get_role_display }}</small>
+                <div class="mini-level"><span style="width:{{ my_stats.level.progress }}%"></span></div>
+                <small class="muted">{% if my_stats.level.next_name %}{{ my_stats.level.missing }} pts para {{ my_stats.level.next_name }}{% else %}Nivel máximo alcanzado{% endif %}</small>
+              </div>
+            </div>
+            <a href="{% url 'accounts:profile' %}">{% icon "user-round" 17 %} Mi perfil</a>
+            <a href="{% url 'certificates:list' %}">{% icon "award" 17 %} Mis certificados</a>
+            <a href="{% url 'courses:my_learning' %}?tab=guardados">{% icon "bookmark" 17 %} Guardados</a>
+            {% if user.is_leader %}<a href="{% url 'accounts:team' %}">{% icon "users-round" 17 %} Mi equipo</a>{% endif %}
+            {% if user.is_staff %}<a href="{% url 'panel:dashboard' %}">{% icon "layout-dashboard" 17 %} Panel de gestión</a>{% endif %}
+            <div class="dropdown-sep"></div>
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">{% icon "log-out" 17 %} Cerrar sesión</button></form>
+          </div>
+        </div>
+      {% else %}
+        <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">{% icon "log-in" 16 %} Ingresar</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.is_authenticated %}
+  <div class="mobile-drawer" x-show="drawer" x-cloak x-transition.opacity @click.self="drawer = false" @keydown.escape.window="drawer = false">
+    <nav aria-label="Menú móvil">
+      <div class="flex items-center justify-between mb-2">
+        <span class="brand"><img src="{% static 'img/logo-mark.png' %}" alt=""><span class="brand-text"><strong>CAMPUS <span>LATINA</span></strong></span></span>
+        <button class="btn btn-ghost btn-icon" type="button" @click="drawer = false" aria-label="Cerrar menú">{% icon "x" 20 %}</button>
+      </div>
+      <form action="{% url 'courses:explore' %}" class="mb-2"><div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" placeholder="Buscar…"></div></form>
+      <a href="{% url 'courses:home' %}">{% icon "house" 19 %} Inicio</a>
+      <a href="{% url 'courses:explore' %}">{% icon "compass" 19 %} Explorar cursos</a>
+      <a href="{% url 'courses:paths' %}">{% icon "route" 19 %} Rutas de aprendizaje</a>
+      <a href="{% url 'courses:my_learning' %}">{% icon "book-open-check" 19 %} Mi aprendizaje</a>
+      <a href="{% url 'catalog:list' %}">{% icon "package" 19 %} Productos</a>
+      <a href="{% url 'core:ranking' %}">{% icon "trophy" 19 %} Ranking</a>
+      <a href="{% url 'certificates:list' %}">{% icon "award" 19 %} Mis certificados</a>
+      <a href="{% url 'accounts:profile' %}">{% icon "user-round" 19 %} Mi perfil</a>
+      {% if user.is_leader %}<a href="{% url 'accounts:team' %}">{% icon "users-round" 19 %} Mi equipo</a>{% endif %}
+      {% if user.is_staff %}<a href="{% url 'panel:dashboard' %}">{% icon "layout-dashboard" 19 %} Panel de gestión</a>{% endif %}
+    </nav>
+  </div>
+  {% endif %}
+</header>
+{% endwith %}

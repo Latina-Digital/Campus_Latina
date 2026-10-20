@@ -1,0 +1,10 @@
+{% if page.has_other_pages %}
+<nav class="pagination" aria-label="Paginación">
+  {% if page.has_previous %}<a href="?{% query_replace page=page.previous_page_number %}" aria-label="Anterior">{% icon "chevron-left" 16 %}</a>{% endif %}
+  {% for n in page.paginator.page_range %}
+    {% if n == page.number %}<span class="current">{{ n }}</span>
+    {% elif n > page.number|add:-3 and n < page.number|add:3 %}<a href="?{% query_replace page=n %}">{{ n }}</a>{% endif %}
+  {% endfor %}
+  {% if page.has_next %}<a href="?{% query_replace page=page.next_page_number %}" aria-label="Siguiente">{% icon "chevron-right" 16 %}</a>{% endif %}
+</nav>
+{% endif %}

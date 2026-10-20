@@ -1,0 +1,15 @@
+<div class="lb-row {% if row.user and row.user.pk == user.pk %}me{% endif %}">
+  <span class="pos">{{ row.rank }}</span>
+  <div class="person">
+    {% if view == 'equipos' %}
+      <span class="avatar avatar-initials" style="width:38px;height:38px;font-size:14px">{{ row.name|slice:":1" }}</span>
+      <div><strong>{{ row.name }}</strong><small class="muted">{{ row.members }} integrantes</small></div>
+    {% else %}
+      {% avatar row.user 38 %}
+      <div><strong><a href="{% url 'accounts:public_profile' row.user.username %}" style="color:inherit">{{ row.user.display_name }}</a></strong><small class="muted">{{ row.level.name }}{% if row.user.supervisor %} · Equipo {{ row.user.supervisor }}{% endif %}</small></div>
+    {% endif %}
+  </div>
+  <span class="hide-sm">{% icon "award" 15 "muted" %} {{ row.certs }}</span>
+  <span class="hide-sm">{% if row.avg is not None %}{{ row.avg }}%{% else %}—{% endif %}</span>
+  <span class="pts">{{ row.points }}</span>
+</div>

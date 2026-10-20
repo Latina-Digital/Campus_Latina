@@ -1,0 +1,18 @@
+{% load static %}
+<div class="cert-paper" role="img" aria-label="Certificado de {{ c.holder_name }} por {{ c.course_title }}">
+  <div class="inner">
+    <img class="wm" src="{% static 'img/logo-mark.png' %}" alt="">
+    <img class="logo" src="{% static 'img/logo-latina.png' %}" alt="">
+    <div class="code">CÓDIGO DE VERIFICACIÓN<b>{{ c.code }}</b></div>
+    <div class="t1">CERTIFICADO</div>
+    <div class="t2">DE APROBACIÓN</div>
+    <div class="t3">{{ CAMPUS_COMPANY }}, a través de {{ CAMPUS_NAME }}, certifica que</div>
+    <div class="name">{{ c.holder_name }}</div>
+    <div class="t3">aprobó satisfactoriamente el curso</div>
+    <div class="course">{{ c.course_title }}</div>
+    <div class="details">Emitido el {{ c.issued_at|date:"j \d\e F \d\e Y" }}{% if c.score is not None %} &nbsp;•&nbsp; Calificación: {{ c.score }}%{% endif %} &nbsp;•&nbsp; Duración: {{ c.hours|floatformat:"-1" }} h</div>
+    <div class="sigs"><div class="sig">{{ CAMPUS_SIGNER_1 }}</div><div class="sig">{{ CAMPUS_SIGNER_2 }}</div></div>
+    <div class="seal">CAMPUS<br>LATINA</div>
+    <div class="stripe"></div>
+  </div>
+</div>

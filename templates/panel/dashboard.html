@@ -1,0 +1,104 @@
+{% extends "panel/base.html" %}{% load static %}
+{% block title %}Panel · Resumen{% endblock %}
+{% block panel %}
+<div class="panel-head">
+  <div><h1>Resumen del campus</h1><p>Actividad de formación de Industrial Latina e Induless.</p></div>
+  <div class="toolbar">
+    <a class="btn" href="{% url 'panel:results' %}?exportar=xlsx">{% icon "file-spreadsheet" 16 %} Exportar resultados</a>
+    <a class="btn btn-primary" href="{% url 'panel:course_create' %}">{% icon "plus" 16 %} Nuevo curso</a>
+  </div>
+</div>
+
+<div class="grid-4">
+  <div class="stat-card"><div class="stat-icon navy">{% icon "users-round" 22 %}</div><div><div class="stat-value">{{ kpis.users }}</div><div class="stat-label">Usuarios activos</div><div class="stat-sub">+{{ kpis.users_new }} este mes · {{ kpis.active_learners }} con actividad</div></div></div>
+  <div class="stat-card"><div class="stat-icon red">{% icon "graduation-cap" 22 %}</div><div><div class="stat-value">{{ kpis.courses }}</div><div class="stat-label">Cursos publicados</div><div class="stat-sub">{{ kpis.drafts }} en borrador</div></div></div>
+  <div class="stat-card"><div class="stat-icon gold">{% icon "award" 22 %}</div><div><div class="stat-value">{{ kpis.certificates }}</div><div class="stat-label">Certificados</div><div class="stat-sub">{{ kpis.certificates_month }} este mes</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">{% icon "target" 22 %}</div><div><div class="stat-value">{{ kpis.approval }}%</div><div class="stat-label">Aprobación</div><div class="stat-sub">Promedio {{ kpis.avg_score }}% · {{ kpis.attempts }} intentos</div></div></div>
+</div>
+
+<div class="grid-2 mt-3" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+  <div class="card"><div class="card-head"><h3>{% icon "trending-up" 18 %} Actividad de los últimos meses</h3></div><div class="card-body"><div class="chart-box"><canvas id="chart-activity" aria-label="Certificados y evaluaciones por mes"></canvas></div></div></div>
+  <div class="card"><div class="card-head"><h3>{% icon "pie-chart" 18 %} Inscripciones por marca</h3></div><div class="card-body"><div class="chart-box"><canvas id="chart-brands" aria-label="Inscripciones por marca"></canvas></div></div></div>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="card"><div class="card-head"><h3>{% icon "chart-bar" 18 %} Nota promedio por curso</h3></div><div class="card-body"><div class="chart-box"><canvas id="chart-courses" aria-label="Nota promedio por curso"></canvas></div></div></div>
+  <div class="card">
+    <div class="card-head"><h3>{% icon "flame" 18 %} Cursos más tomados</h3></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Curso</th><th>Inscritos</th><th></th></tr></thead>
+        <tbody>
+          {% for c in top_courses %}
+          <tr><td><strong>{{ c.title }}</strong><br><small class="muted">{{ c.get_brand_display }}</small></td><td>{{ c.n }}</td><td class="actions"><a class="btn btn-sm" href="{% url 'panel:course_builder' c.pk %}">Abrir</a></td></tr>
+          {% empty %}<tr><td colspan="3" class="muted">Sin cursos todavía.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if inactive_users %}<div class="card-body" style="padding-top:0"><div class="alert warning">{% icon "user-x" 18 %}<span><strong>{{ inactive_users }}</strong> usuario{{ inactive_users|pluralize }} aún no ha{{ inactive_users|pluralize:"n" }} comenzado ningún curso.</span></div></div>{% endif %}
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-head"><h3>{% icon "history" 18 %} Últimas evaluaciones</h3><a class="small" href="{% url 'panel:results' %}">Ver todas</a></div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Colaborador</th><th>Curso</th><th>Fecha</th><th>Nota</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for a in recent_attempts %}
+        <tr>
+          <td><div class="cell-user">{% avatar a.user 32 %}<div><strong>{{ a.user.display_name }}</strong><small>{{ a.user.supervisor|default:"—" }}</small></div></div></td>
+          <td>{{ a.quiz.course.title }}</td>
+          <td>{{ a.finished_at|date:"d/m/Y H:i" }}</td>
+          <td><strong>{{ a.score }}%</strong></td>
+          <td>{% if a.passed %}<span class="pill pill-success">Aprobado</span>{% else %}<span class="pill pill-red">Reprobado</span>{% endif %}</td>
+          <td class="actions"><a class="btn btn-sm" href="{% url 'panel:attempt_report' a.pk %}" target="_blank">{% icon "file-text" 14 %} Informe</a></td>
+        </tr>
+        {% empty %}<tr><td colspan="6" class="muted">Aún no hay evaluaciones rendidas.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ chart_activity|json_script:"data-activity" }}
+{{ chart_courses|json_script:"data-courses" }}
+{{ chart_brands|json_script:"data-brands" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'vendor/chart.umd.min.js' %}"></script>
+<script>
+  (function () {
+    const css = getComputedStyle(document.documentElement);
+    const color = (v) => css.getPropertyValue(v).trim();
+    const read = (id) => JSON.parse(document.getElementById(id).textContent);
+    Chart.defaults.font.family = "Inter, Segoe UI, sans-serif";
+    Chart.defaults.color = color("--muted");
+    Chart.defaults.borderColor = color("--border");
+    const navy = color("--primary"), red = "#E3000F", gold = "#FACC00";
+
+    const act = read("data-activity");
+    new Chart(document.getElementById("chart-activity"), {
+      type: "bar",
+      data: { labels: act.labels, datasets: [
+        { label: "Evaluaciones rendidas", data: act.attempts, backgroundColor: navy, borderRadius: 6, maxBarThickness: 34 },
+        { label: "Certificados emitidos", data: act.certificates, backgroundColor: gold, borderRadius: 6, maxBarThickness: 34 },
+      ] },
+      options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } },
+    });
+
+    const cs = read("data-courses");
+    new Chart(document.getElementById("chart-courses"), {
+      type: "bar",
+      data: { labels: cs.labels, datasets: [{ label: "Nota promedio (%)", data: cs.scores, backgroundColor: cs.scores.map((s) => s >= 70 ? "#16A34A" : red), borderRadius: 6, maxBarThickness: 26 }] },
+      options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100 }, y: { grid: { display: false } } } },
+    });
+
+    const br = read("data-brands");
+    new Chart(document.getElementById("chart-brands"), {
+      type: "doughnut",
+      data: { labels: br.labels, datasets: [{ data: br.values, backgroundColor: [navy, red, gold], borderWidth: 0 }] },
+      options: { maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: "bottom" } } },
+    });
+  })();
+</script>
+{% endblock %}

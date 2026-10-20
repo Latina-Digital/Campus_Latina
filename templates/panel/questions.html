@@ -1,0 +1,59 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Preguntas{% endblock %}
+{% block crumb %}Cursos / {{ course.title }} / Banco de preguntas{% endblock %}
+{% block panel %}
+<a class="small muted" href="{% url 'panel:course_builder' course.pk %}">{% icon "arrow-left" 14 %} {{ course.title }}</a>
+<div class="panel-head mt-1">
+  <div><h1>Banco de preguntas</h1><p>En cada intento se eligen {{ quiz.questions_per_attempt }} preguntas al azar y se mezclan las opciones. Tiempo: {{ quiz.time_limit_minutes }} min · Nota mínima: {{ quiz.passing_score }}%.</p></div>
+  <div class="toolbar">
+    <a class="btn" href="#importar">{% icon "file-up" 16 %} Importar</a>
+    <a class="btn btn-primary" href="#nueva">{% icon "plus" 16 %} Nueva pregunta</a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-head"><h3>{% icon "list-checks" 18 %} {{ questions|length }} pregunta{{ questions|length|pluralize }}</h3>
+    {% if questions %}<form method="post" data-confirm="¿Eliminar TODAS las preguntas de esta evaluación?">{% csrf_token %}<button class="btn btn-sm btn-danger" name="action" value="delete_all">{% icon "trash-2" 14 %} Vaciar banco</button></form>{% endif %}
+  </div>
+  {% for q in questions %}
+  <div class="q-item" id="q-{{ q.pk }}">
+    <div class="flex justify-between gap-2">
+      <strong>{{ forloop.counter }}. {{ q.text }}</strong>
+      <a class="btn btn-sm" href="{% url 'panel:question_edit' q.pk %}">{% icon "pencil" 14 %} Editar</a>
+    </div>
+    <ol>{% for c in q.choices.all %}<li class="{% if c.is_correct %}ok{% endif %}">{% if c.is_correct %}{% icon "circle-check" 16 %}{% else %}{% icon "circle" 16 "muted" %}{% endif %} {{ c.text }}</li>{% endfor %}</ol>
+    {% if q.explanation %}<p class="small muted mt-1 mb-0">{% icon "lightbulb" 14 %} {{ q.explanation }}</p>{% endif %}
+  </div>
+  {% empty %}
+  <div class="card-body"><div class="empty">{% icon "message-circle-question" 40 %}<h3>Aún no hay preguntas</h3><p>Agrégalas una por una o impórtalas desde Word, Excel o texto.</p></div></div>
+  {% endfor %}
+</div>
+
+<div class="grid-2" style="align-items:start">
+  <form method="post" class="card" id="nueva">
+    {% csrf_token %}
+    <div class="card-head"><h3>{% icon "plus-circle" 18 %} Nueva pregunta</h3></div>
+    <div class="card-body">
+      {% include "panel/_question_fields.html" %}
+      <button class="btn btn-primary" name="action" value="add">{% icon "plus" 16 %} Agregar al banco</button>
+    </div>
+  </form>
+
+  <form method="post" enctype="multipart/form-data" class="card" id="importar">
+    {% csrf_token %}
+    <div class="card-head"><h3>{% icon "file-up" 18 %} Importar preguntas</h3><a class="small" href="{% url 'panel:question_template' %}">Plantilla Excel/CSV</a></div>
+    <div class="card-body">
+      {% if import_form.non_field_errors %}<div class="alert error mb-2">{{ import_form.non_field_errors }}</div>{% endif %}
+      {% for field in import_form %}{% include "partials/field.html" %}{% endfor %}
+      <p class="small muted mb-1">Formato para Word o texto (el asterisco marca la respuesta correcta):</p>
+      <div class="code-sample mb-2">1. ¿Cuántos días debe curar un enlucido?
+a) De 5 a 10 días
+b) De 15 a 20 días
+*c) De 28 a 31 días
+d) De 40 a 50 días
+Explicación: El enlucido necesita casi un mes.</div>
+      <button class="btn btn-navy" name="action" value="import">{% icon "upload" 16 %} Importar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

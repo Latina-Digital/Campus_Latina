@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+media/
+staticfiles/
+Thumbs.db
+.DS_Store
+.vscode/
+db.sqlite3.seeded
+logs/
+web.config
+data/
+backups/

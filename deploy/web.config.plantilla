@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Campus Latina en IIS con HttpPlatformHandler.
+  instalar_iis.ps1 genera el web.config real reemplazando {{PYTHON}}.
+  IIS arranca Waitress (serve.py) y le reenvía todas las peticiones.
+-->
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="httpPlatformHandler" path="*" verb="*" modules="httpPlatformHandler" resourceType="Unspecified" requireAccess="Script" />
+    </handlers>
+    <httpPlatform processPath="{{PYTHON}}"
+                  arguments="serve.py"
+                  startupTimeLimit="120"
+                  startupRetryCount="3"
+                  requestTimeout="00:15:00"
+                  processesPerApplication="1"
+                  stdoutLogEnabled="true"
+                  stdoutLogFile=".\logs\iis-stdout">
+      <environmentVariables>
+        <environmentVariable name="PORT" value="%HTTP_PLATFORM_PORT%" />
+        <environmentVariable name="HOST" value="127.0.0.1" />
+        <environmentVariable name="PYTHONUNBUFFERED" value="1" />
+        <environmentVariable name="PYTHONIOENCODING" value="utf-8" />
+      </environmentVariables>
+    </httpPlatform>
+    <security>
+      <requestFiltering>
+        <!-- Permite subir videos de hasta 1 GB -->
+        <requestLimits maxAllowedContentLength="1073741824" />
+        <hiddenSegments>
+          <add segment=".env" />
+          <add segment=".venv" />
+          <add segment="data" />
+          <add segment="logs" />
+        </hiddenSegments>
+      </requestFiltering>
+    </security>
+    <httpErrors existingResponse="PassThrough" />
+{{HTTPS_REDIRECT}}
+  </system.webServer>
+</configuration>

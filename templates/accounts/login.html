@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Ingresar{% endblock %}
+{% block topbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="auth">
+  <aside class="auth-art">
+    <div class="bg" aria-hidden="true"></div>
+    <a class="brand" href="{% url 'core:landing' %}"><img src="{% static 'img/logo-mark.png' %}" alt=""><span class="brand-text"><strong>CAMPUS <span>LATINA</span></strong><small>Industrial Latina · Induless</small></span></a>
+    <div>
+      <div class="eyebrow" style="color:var(--gold-500)">Calidad que pinta tu mundo</div>
+      <h2>Tu formación comercial, en un solo lugar.</h2>
+      <p style="color:rgba(255,255,255,.8);max-width:460px">Cursos de producto, evaluaciones y certificados para el equipo de ventas de Industrial Latina e Induless.</p>
+    </div>
+  </aside>
+  <section class="auth-form">
+    <div class="auth-box">
+      <img class="logo-full" src="{% static 'img/logo-latina.png' %}" alt="{{ CAMPUS_COMPANY }}">
+      <h1>Inicia sesión</h1>
+      <p class="muted mb-3">Usa el usuario y la contraseña que te asignó tu empresa.</p>
+      {% if lockout %}
+        <div class="alert error mb-2">{% icon "shield-alert" 18 %}<div>{{ lockout }}</div></div>
+      {% endif %}
+      {% if form.non_field_errors %}
+        <div class="alert error mb-2">{% icon "alert-circle" 18 %}<div>{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div></div>
+      {% endif %}
+      <form method="post" x-data="{ show: false, loading: false }" @submit="loading = true">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field">
+          <label for="id_username">Usuario</label>
+          <div class="input-icon">{% icon "user-round" 17 %}{{ form.username }}</div>
+        </div>
+        <div class="field">
+          <label for="id_password">Contraseña</label>
+          <div class="input-icon" style="position:relative">
+            {% icon "lock-keyhole" 17 %}
+            <input :type="show ? 'text' : 'password'" name="password" id="id_password" class="input" placeholder="••••••••" required autocomplete="current-password" style="padding-right:46px">
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" style="position:absolute;right:4px;top:50%;transform:translateY(-50%)" @click="show = !show" :aria-label="show ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <span x-show="!show">{% icon "eye" 17 %}</span><span x-show="show" x-cloak>{% icon "eye-off" 17 %}</span>
+            </button>
+          </div>
+        </div>
+        <div class="field field-check">{{ form.remember }}<label for="id_remember">Mantener sesión iniciada</label></div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit" :disabled="loading">
+          <span x-show="!loading">Ingresar al campus</span><span x-show="loading" x-cloak>Validando…</span>
+        </button>
+      </form>
+      <p class="small muted mt-3">¿Olvidaste tu contraseña? Comunícate con el área de Capacitación o con tu supervisor.</p>
+      <hr>
+      <a class="small" href="{% url 'certificates:verify' %}">{% icon "shield-check" 15 %} Verificar un certificado</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Ruta de aprendizaje{% endblock %}
+{% block panel %}
+<a class="small muted" href="{% url 'panel:path_list' %}">{% icon "arrow-left" 14 %} Rutas</a>
+<div class="panel-head mt-1"><div><h1>{% if path %}Editar ruta{% else %}Nueva ruta de aprendizaje{% endif %}</h1><p>Una ruta agrupa cursos en un orden recomendado.</p></div></div>
+<form method="post" enctype="multipart/form-data" style="max-width:980px">
+  {% csrf_token %}
+  <div class="card card-pad mb-2">
+    <div class="form-grid">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>
+  </div>
+  <div class="card mb-2">
+    <div class="card-head"><h3>{% icon "list-ordered" 18 %} Cursos de la ruta</h3><span class="small muted">Usa el campo “orden” para definir la secuencia</span></div>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="alert error">{{ formset.non_form_errors }}</div>{% endif %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Curso</th><th style="width:120px">Orden</th><th style="width:90px">Quitar</th></tr></thead>
+        <tbody>
+          {% for f in formset %}
+          <tr>
+            <td>{% for h in f.hidden_fields %}{{ h }}{% endfor %}{{ f.course }}{{ f.course.errors }}</td>
+            <td>{{ f.order }}</td>
+            <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" style="padding:0 22px 14px">Guarda para que aparezcan más filas vacías y seguir agregando cursos.</p>
+  </div>
+  <button class="btn btn-primary">{% icon "save" 16 %} Guardar ruta</button>
+  <a class="btn" href="{% url 'panel:path_list' %}">Cancelar</a>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll("form select, form input[type=number]").forEach(function (el) {
+    if (!el.classList.contains("input")) el.classList.add("input");
+    if (el.tagName === "SELECT") el.classList.add("select");
+  });
+  document.querySelectorAll("form input[type=checkbox]").forEach(function (el) { el.classList.add("checkbox"); });
+</script>
+{% endblock %}

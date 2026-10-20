@@ -1,0 +1,15 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · {{ title }}{% endblock %}
+{% block panel %}
+<a class="small muted" href="{{ back_url }}">{% icon "arrow-left" 14 %} Volver</a>
+<div class="panel-head mt-1"><div><h1>{{ title }}</h1></div></div>
+<form method="post" enctype="multipart/form-data" class="card card-pad" style="max-width:920px">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error mb-2">{% icon "alert-circle" 18 %}<div>{{ form.non_field_errors }}</div></div>{% endif %}
+  {% block fields %}<div class="form-grid">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>{% endblock %}
+  <div class="flex gap-1 justify-between wrap mt-2">
+    <div class="flex gap-1"><button class="btn btn-primary" type="submit">{% icon "save" 16 %} Guardar</button><a class="btn" href="{{ back_url }}">Cancelar</a></div>
+    {% if deletable %}<button class="btn btn-danger" name="action" value="delete" formnovalidate data-confirm="¿Eliminar definitivamente? Esta acción no se puede deshacer.">{% icon "trash-2" 16 %} Eliminar</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Formación Industrial Latina e Induless{% endblock %}
+{% block topbar %}{% endblock %}
+{% block content %}
+<section class="landing-hero">
+  <div class="bg" aria-hidden="true"></div>
+  <header class="landing-nav">
+    <div class="container topbar-inner">
+      <a class="brand" href="{% url 'core:landing' %}"><img src="{% static 'img/logo-mark.png' %}" alt=""><span class="brand-text"><strong>CAMPUS <span>LATINA</span></strong><small>Industrial Latina · Induless</small></span></a>
+      <div class="nav-actions" style="margin-left:auto">
+        <a class="btn btn-glass btn-sm" href="{% url 'certificates:verify' %}">{% icon "shield-check" 16 %} <span class="lbl-md">Verificar certificado</span></a>
+        <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">{% icon "log-in" 16 %} Ingresar</a>
+      </div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="eyebrow" style="color:var(--gold-500)">{% icon "sparkles" 14 %} Escuela comercial y técnica</div>
+    <h1>Aprende de nuestros productos. <em>Certifícate.</em> <span class="red">Vende mejor.</span></h1>
+    <p class="lead">Cursos cortos, prácticos y en video sobre pinturas, empastes, selladores y la línea Induless. Evalúa lo aprendido y obtén certificados verificables de {{ CAMPUS_COMPANY }}.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary btn-lg" href="{% url 'accounts:login' %}">Comenzar a aprender {% icon "arrow-right" 18 %}</a>
+      <a class="btn btn-glass btn-lg" href="#como-funciona">¿Cómo funciona?</a>
+    </div>
+    <div class="trust-row">
+      <span>{% icon "badge-check" 18 %} Certificados con código QR</span>
+      <span>{% icon "smartphone" 18 %} Desde el celular o la PC</span>
+      <span>{% icon "trophy" 18 %} Ranking y niveles</span>
+    </div>
+  </div>
+</section>
+
+<div class="container stats-band">
+  <div class="card">
+    <div class="stat"><div class="num">{{ stats.courses }}</div><div class="lbl">cursos disponibles</div></div>
+    <div class="stat"><div class="num">{{ stats.lessons }}</div><div class="lbl">lecciones en video y lectura</div></div>
+    <div class="stat"><div class="num">{{ stats.certificates }}</div><div class="lbl">certificados emitidos</div></div>
+    <div class="stat"><div class="num">{{ stats.products }}</div><div class="lbl">productos en el catálogo</div></div>
+  </div>
+</div>
+
+<section class="section container" id="como-funciona" style="padding-top:64px">
+  <div class="text-center mb-3">
+    <div class="eyebrow">Así de simple</div>
+    <h2>Tu ruta para convertirte en experto</h2>
+  </div>
+  <div class="steps">
+    <div class="card step"><div class="stat-icon navy">{% icon "play-circle" 24 %}</div><h3>Aprende</h3><p class="muted mb-0">Mira lecciones cortas de cada producto: características, usos, preparación de superficies y argumentos de venta.</p></div>
+    <div class="card step"><div class="stat-icon red">{% icon "clipboard-check" 24 %}</div><h3>Evalúate</h3><p class="muted mb-0">Responde una evaluación con tiempo límite y preguntas al azar. Revisa tus respuestas y refuerza lo que falló.</p></div>
+    <div class="card step"><div class="stat-icon gold">{% icon "award" 24 %}</div><h3>Certifícate</h3><p class="muted mb-0">Aprueba con 70% o más y descarga tu certificado en PDF, verificable con código QR y listo para LinkedIn.</p></div>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="brand-split">
+    <div class="brand-panel latina">
+      <span class="panel-icon" aria-hidden="true">{% icon "paint-roller" 150 %}</span>
+      <div class="eyebrow" style="color:var(--gold-500)">Industrial Latina</div>
+      <h3>Más que pinturas, soluciones</h3>
+      <p>Duralin Premium Forte, Satinado, Elastomérico, empastes y selladores. Conoce cada línea a profundidad.</p>
+    </div>
+    <div class="brand-panel induless">
+      <span class="panel-icon" aria-hidden="true">{% icon "hammer" 150 %}</span>
+      <div class="eyebrow" style="color:#fff">Induless</div>
+      <h3>Siliconas, cubiertas y fijaciones</h3>
+      <p>Siliconas, Induzinc y clavos: aprende a recomendar el producto correcto para cada obra.</p>
+    </div>
+  </div>
+</section>
+
+{% if featured %}
+<section class="section container">
+  <div class="section-head">
+    <div><div class="eyebrow">Cursos destacados</div><h2>Empieza por aquí</h2></div>
+    <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Ver todos {% icon "arrow-right" 16 %}</a>
+  </div>
+  <div class="course-grid">
+    {% for course in featured %}{% include "partials/course_card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section container">
+  <div class="verify-band">
+    <div>
+      <div class="eyebrow" style="color:var(--gold-500)">{% icon "shield-check" 14 %} Validación pública</div>
+      <h2>¿Recibiste un certificado de Campus Latina?</h2>
+      <p>Ingresa el código impreso en el certificado (por ejemplo IL-2026-AB12CD34) para comprobar que es auténtico.</p>
+    </div>
+    <form action="{% url 'certificates:verify' %}" class="flex gap-2 wrap">
+      <input class="input" name="codigo" placeholder="IL-2026-XXXXXXXX" style="flex:1;min-width:200px" required aria-label="Código del certificado">
+      <button class="btn btn-gold">{% icon "search-check" 17 %} Verificar</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

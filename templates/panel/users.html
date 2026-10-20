@@ -1,0 +1,27 @@
+{% extends "panel/generic_list.html" %}
+{% block list_tools %}
+<form class="flex gap-1">
+  {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+  <select name="rol" class="input select" style="min-height:40px;width:auto" onchange="this.form.submit()" aria-label="Filtrar por rol">
+    <option value="">Todos los roles</option>
+    {% for value, label in roles %}<option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</form>
+{% endblock %}
+{% block before_table %}
+<details class="card card-pad mb-2" style="background:var(--surface-2)">
+  <summary style="cursor:pointer;font-weight:700">{% icon "file-up" 17 %} Importar usuarios desde Excel o CSV</summary>
+  <div class="grid-2 mt-2" style="align-items:start">
+    <form method="post" action="{% url 'panel:user_import' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in import_form %}{% include "partials/field.html" %}{% endfor %}
+      <button class="btn btn-navy">{% icon "upload" 16 %} Importar</button>
+    </form>
+    <div class="small">
+      <p class="mb-1"><strong>Columnas aceptadas:</strong> usuario, nombres, apellidos (o nombre_completo), contrasena, rol, supervisor, area, ciudad, correo.</p>
+      <p class="mb-1">Si el usuario ya existe se actualizan sus datos. Roles: ejecutivo, supervisor, jefe de ventas, jefe nacional de ventas, admin.</p>
+      <a class="btn btn-sm" href="{% url 'panel:user_template' %}">{% icon "download" 14 %} Descargar plantilla</a>
+    </div>
+  </div>
+</details>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Informe de evaluación · {{ attempt.user.display_name }}</title>
+  <link rel="stylesheet" href="{% static 'css/campus.css' %}">
+  <style>
+    body { background: #EEF1F6; color: #1F2937; }
+    .report-sheet { margin: 24px auto; box-shadow: 0 10px 30px rgba(0,0,0,.12); border-top: 8px solid #0A1C40; }
+    .report-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0A1C40; padding-bottom: 16px; margin-bottom: 22px; }
+    .report-head img { height: 58px; }
+    .report-sheet h1 { color: #0A1C40; font-size: 22px; margin: 0; }
+    .kvbox { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 30px; background: #F4F6FA; border-left: 5px solid #0A1C40; padding: 16px 20px; border-radius: 8px; font-size: 14px; }
+    .kvbox span { color: #6B7280; }
+    .score { text-align: center; padding: 22px; border: 2px solid #E5E7EB; border-radius: 12px; margin: 22px 0; }
+    .score b { display: block; font: 800 46px/1.1 Montserrat, sans-serif; }
+    .q { padding: 12px 0; border-bottom: 1px solid #E5E7EB; font-size: 14px; page-break-inside: avoid; }
+    .q .opt { padding: 4px 10px; border-radius: 6px; margin: 3px 0; }
+    .q .ok { background: #E5F6EB; color: #15803D; font-weight: 600; }
+    .q .bad { background: #FDE8E9; color: #C2000D; text-decoration: line-through; }
+    .foot { text-align: center; font-size: 12px; color: #6B7280; margin-top: 28px; border-top: 1px solid #E5E7EB; padding-top: 14px; }
+    .tools { text-align: center; margin-top: 20px; }
+    @media print { body { background: #fff; } .report-sheet { box-shadow: none; margin: 0; } .tools { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="tools"><button class="btn btn-navy" onclick="window.print()">Imprimir / Guardar PDF</button></div>
+  <div class="report-sheet">
+    <div class="report-head">
+      <img src="{% static 'img/logo-latina.png' %}" alt="{{ CAMPUS_COMPANY }}">
+      <div style="text-align:right"><h1>INFORME DE EVALUACIÓN</h1><small style="color:#6B7280">Generado el {{ printed_at|date:"d/m/Y H:i" }}</small></div>
+    </div>
+    <div class="kvbox">
+      <div><span>Colaborador:</span> <strong>{{ attempt.user.display_name }}</strong></div>
+      <div><span>Usuario:</span> {{ attempt.user.username }}</div>
+      <div><span>Supervisor:</span> {{ attempt.user.supervisor|default:"—" }}</div>
+      <div><span>Rol:</span> {{ attempt.user.get_role_display }}</div>
+      <div><span>Curso:</span> <strong>{{ attempt.quiz.course.title }}</strong></div>
+      <div><span>Fecha:</span> {{ attempt.finished_at|date:"d/m/Y H:i" }}</div>
+      <div><span>Duración:</span> {{ attempt.duration_display }}</div>
+      <div><span>Tiempo agotado:</span> {{ attempt.timed_out|yesno:"Sí,No" }}</div>
+    </div>
+    <div class="score">
+      <span style="text-transform:uppercase;color:#6B7280;font-weight:700;font-size:13px">Calificación obtenida</span>
+      <b style="color:{% if attempt.passed %}#15803D{% else %}#E3000F{% endif %}">{{ attempt.score }}%</b>
+      {{ attempt.correct_count }} de {{ attempt.total }} respuestas correctas · Nota mínima {{ attempt.passing_score }}% ·
+      <strong style="color:{% if attempt.passed %}#15803D{% else %}#E3000F{% endif %}">{{ attempt.status_label|upper }}</strong>
+    </div>
+    <h3 style="color:#0A1C40">Detalle de respuestas</h3>
+    {% for item in items %}
+    <div class="q">
+      <strong>{{ item.number }}. {{ item.text }}</strong>
+      {% for o in item.options %}
+        {% if o.is_correct %}<div class="opt ok">✓ {{ o.letter }}) {{ o.text }}{% if o.chosen %} — respuesta del colaborador{% endif %}</div>
+        {% elif o.chosen %}<div class="opt bad">✗ {{ o.letter }}) {{ o.text }}</div>{% endif %}
+      {% endfor %}
+      {% if not item.answered %}<div class="opt bad" style="text-decoration:none">Sin responder</div>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="foot">Documento generado automáticamente por {{ CAMPUS_NAME }} · {{ CAMPUS_COMPANY }}.<br>Uso interno del Departamento Comercial.</div>
+  </div>
+</body>
+</html>

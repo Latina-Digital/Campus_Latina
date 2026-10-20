@@ -1,0 +1,99 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · {{ course.title }}{% endblock %}
+{% block crumb %}Cursos / {{ course.title }}{% endblock %}
+{% block panel %}
+<a class="small muted" href="{% url 'panel:course_list' %}">{% icon "arrow-left" 14 %} Todos los cursos</a>
+<div class="panel-head mt-1">
+  <div>
+    <div class="flex gap-1 items-center mb-1">{% brand_badge course.brand %}{% if course.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}</div>
+    <h1>{{ course.title }}</h1>
+    <p>{{ course.summary }}</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" href="{{ course.get_absolute_url }}" target="_blank">{% icon "eye" 16 %} Vista previa</a>
+    <a class="btn" href="{% url 'panel:course_edit' course.pk %}">{% icon "pencil" 16 %} Datos del curso</a>
+    <form method="post">{% csrf_token %}<button class="btn {% if course.is_published %}btn-ghost{% else %}btn-primary{% endif %}" name="action" value="toggle_publish">{% if course.is_published %}{% icon "eye-off" 16 %} Pasar a borrador{% else %}{% icon "send" 16 %} Publicar curso{% endif %}</button></form>
+  </div>
+</div>
+
+<div class="grid-4 mb-3">
+  <div class="stat-card"><div class="stat-icon navy">{% icon "users" 20 %}</div><div><div class="stat-value">{{ stats.enrolled }}</div><div class="stat-label">Inscritos</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">{% icon "circle-check-big" 20 %}</div><div><div class="stat-value">{{ stats.completed }}</div><div class="stat-label">Completaron</div></div></div>
+  <div class="stat-card"><div class="stat-icon gold">{% icon "award" 20 %}</div><div><div class="stat-value">{{ stats.certificates }}</div><div class="stat-label">Certificados</div></div></div>
+  <div class="stat-card"><div class="stat-icon red">{% icon "target" 20 %}</div><div><div class="stat-value">{{ stats.avg }}%</div><div class="stat-label">Nota promedio</div></div></div>
+</div>
+
+<div class="grid-2" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start">
+  <section>
+    <div class="flex justify-between items-center mb-2"><h2 style="font-size:20px;margin:0">Módulos y lecciones</h2></div>
+    {% for module in modules %}
+    <div class="builder-module" id="module-{{ module.pk }}">
+      <div class="bm-head">
+        <span class="pill pill-navy">Módulo {{ forloop.counter }}</span>
+        <h3>{{ module.title }}</h3>
+        <form method="post" action="{% url 'panel:reorder' 'module' module.pk %}" class="flex">{% csrf_token %}
+          <button class="btn btn-ghost btn-icon btn-sm" name="dir" value="up" title="Subir" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-up" 15 %}</button>
+          <button class="btn btn-ghost btn-icon btn-sm" name="dir" value="down" title="Bajar" {% if forloop.last %}disabled{% endif %}>{% icon "arrow-down" 15 %}</button>
+        </form>
+        <a class="btn btn-sm" href="{% url 'panel:module_edit' module.pk %}" title="Editar módulo">{% icon "pencil" 14 %}</a>
+      </div>
+      {% for lesson in module.lessons.all %}
+      <div class="bm-lesson" id="lesson-{{ lesson.pk }}">
+        <span class="kind">{% icon lesson.icon 17 %}</span>
+        <div class="t"><strong>{{ lesson.title }}</strong><br><small class="muted">{{ lesson.get_kind_display }} · {{ lesson.duration_minutes }} min{% if lesson.kind == "video" and not lesson.video %} · <span style="color:var(--accent)">sin archivo</span>{% endif %}</small></div>
+        <form method="post" action="{% url 'panel:reorder' 'lesson' lesson.pk %}" class="flex">{% csrf_token %}
+          <button class="btn btn-ghost btn-icon btn-sm" name="dir" value="up" title="Subir" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-up" 15 %}</button>
+          <button class="btn btn-ghost btn-icon btn-sm" name="dir" value="down" title="Bajar" {% if forloop.last %}disabled{% endif %}>{% icon "arrow-down" 15 %}</button>
+        </form>
+        <a class="btn btn-sm" href="{% url 'panel:lesson_edit' course.pk lesson.pk %}">{% icon "pencil" 14 %} Editar</a>
+      </div>
+      {% empty %}
+      <div class="bm-lesson muted">Este módulo aún no tiene lecciones.</div>
+      {% endfor %}
+      <div class="bm-lesson" style="background:var(--surface-2)"><a class="btn btn-sm btn-navy" href="{% url 'panel:lesson_create' course.pk %}?modulo={{ module.pk }}">{% icon "plus" 14 %} Agregar lección</a></div>
+    </div>
+    {% empty %}
+    <div class="empty mb-2">{% icon "blocks" 40 %}<h3>Empieza creando un módulo</h3><p>Los módulos agrupan lecciones, por ejemplo “Conociendo el producto” o “Aplicación”.</p></div>
+    {% endfor %}
+
+    <form method="post" class="card card-pad">
+      {% csrf_token %}
+      <h3>{% icon "folder-plus" 18 %} Nuevo módulo</h3>
+      <div class="form-grid">{% for field in module_form %}{% include "partials/field.html" %}{% endfor %}</div>
+      <button class="btn btn-navy" name="action" value="add_module">{% icon "plus" 16 %} Crear módulo</button>
+    </form>
+  </section>
+
+  <aside>
+    <div class="card mb-3">
+      <div class="card-head"><h3>{% icon "clipboard-check" 18 %} Evaluación final</h3><span class="pill {% if question_count %}pill-success{% else %}pill-red{% endif %}">{{ question_count }} pregunta{{ question_count|pluralize }}</span></div>
+      <form method="post" class="card-body">
+        {% csrf_token %}
+        {% for field in quiz_form %}{% include "partials/field.html" %}{% endfor %}
+        <div class="flex gap-1 wrap">
+          <button class="btn btn-navy" name="action" value="save_quiz">{% icon "save" 16 %} Guardar</button>
+          <a class="btn btn-primary" href="{% url 'panel:questions' course.pk %}">{% icon "list-checks" 16 %} Banco de preguntas</a>
+        </div>
+        {% if not question_count %}<p class="small muted mt-1 mb-0">Sin preguntas, el certificado se emite al completar todas las lecciones.</p>{% endif %}
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>{% icon "paperclip" 18 %} Material descargable</h3></div>
+      <div class="card-body">
+        {% for r in course.resources.all %}
+        <div class="flex items-center gap-1 mb-1">{% icon "file" 16 "muted" %}<a href="{{ r.href }}" target="_blank" style="flex:1">{{ r.title }}</a>
+          <form method="post" action="{% url 'panel:resource_delete' r.pk %}" data-confirm="¿Quitar este material?">{% csrf_token %}<button class="btn btn-ghost btn-icon btn-sm" title="Quitar">{% icon "x" 15 %}</button></form>
+        </div>
+        {% empty %}<p class="small muted">Fichas técnicas, catálogos o guías en PDF para que los estudiantes descarguen.</p>{% endfor %}
+        <form method="post" enctype="multipart/form-data" class="mt-2">
+          {% csrf_token %}
+          {% if resource_form.non_field_errors %}<div class="alert error mb-1">{{ resource_form.non_field_errors }}</div>{% endif %}
+          {% for field in resource_form %}{% include "partials/field.html" %}{% endfor %}
+          <button class="btn btn-sm btn-navy" name="action" value="add_resource">{% icon "plus" 14 %} Agregar material</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

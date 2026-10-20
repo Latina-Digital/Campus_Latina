@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Catálogo de productos{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "package" 14 %} Catálogo comercial</div>
+    <h1>Nuestros productos</h1>
+    <p>Fichas de cada producto de Industrial Latina e Induless: características, usos recomendados, presentaciones y cursos relacionados.</p>
+    <form class="flex gap-2 wrap mt-3" style="max-width:560px">
+      <div class="input-icon" style="flex:1;min-width:220px">{% icon "search" 17 %}<input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="Buscar producto…" aria-label="Buscar producto"></div>
+      {% if filters.marca %}<input type="hidden" name="marca" value="{{ filters.marca }}">{% endif %}
+      {% if filters.linea %}<input type="hidden" name="linea" value="{{ filters.linea }}">{% endif %}
+      <button class="btn btn-gold">Buscar</button>
+    </form>
+  </div>
+</header>
+<div class="container section">
+  <div class="with-sidebar">
+    <aside class="side-filter card card-pad">
+      <div class="filter-group">
+        <h4>Empresa</h4>
+        <a class="filter-link {% if not filters.marca %}active{% endif %}" href="?{% query_replace marca='' %}"><span>Ambas</span><span class="n">{{ brand_counts|get_item:"" }}</span></a>
+        <a class="filter-link {% if filters.marca == 'latina' %}active{% endif %}" href="?{% query_replace marca='latina' %}"><span>Industrial Latina</span><span class="n">{{ brand_counts.latina }}</span></a>
+        <a class="filter-link {% if filters.marca == 'induless' %}active{% endif %}" href="?{% query_replace marca='induless' %}"><span>Induless</span><span class="n">{{ brand_counts.induless }}</span></a>
+      </div>
+      <div class="filter-group mb-0">
+        <h4>Línea</h4>
+        <a class="filter-link {% if not filters.linea %}active{% endif %}" href="?{% query_replace linea='' %}">Todas</a>
+        {% for line in lines %}<a class="filter-link {% if filters.linea == line.slug %}active{% endif %}" href="?{% query_replace linea=line.slug %}"><span>{% icon line.icon 15 %} {{ line.name }}</span><span class="n">{{ line.n }}</span></a>{% endfor %}
+      </div>
+    </aside>
+    <section>
+      <p class="muted"><strong style="color:var(--text)">{{ products|length }}</strong> producto{{ products|length|pluralize }}</p>
+      {% if products %}
+      <div class="product-grid">
+        {% for product in products %}
+        <a class="card product-card" href="{{ product.get_absolute_url }}">
+          <div class="product-img">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}{% icon "package" 56 %}{% endif %}{% brand_badge product.brand %}</div>
+          <div class="product-body">
+            <div class="course-cat">{{ product.line.name|default:"Producto" }}</div>
+            <h3>{{ product.name }}</h3>
+            <p>{{ product.summary|truncatechars:110 }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">{% icon "package-search" 44 %}<h3>No hay productos con esos filtros</h3><a class="btn btn-navy" href="{% url 'catalog:list' %}">Ver todo el catálogo</a></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

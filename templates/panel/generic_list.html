@@ -1,0 +1,33 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · {{ title }}{% endblock %}
+{% block panel %}
+<div class="panel-head">
+  <div><h1>{{ title }}</h1>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>
+  <div class="toolbar">
+    {% block list_tools %}{% endblock %}
+    {% if searchable %}<form><div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" value="{{ q }}" placeholder="Buscar…" style="min-height:40px" aria-label="Buscar"></div></form>{% endif %}
+    {% if create_url %}<a class="btn btn-primary" href="{{ create_url }}">{% icon "plus" 16 %} Agregar</a>{% endif %}
+  </div>
+</div>
+{% block before_table %}{% endblock %}
+<div class="card table-wrap">
+  <table class="data-table">
+    <thead><tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}<th></th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}
+        <td class="actions">
+          {% for label, icon_name, url in row.extra %}<a class="btn btn-sm" href="{{ url }}">{% icon icon_name 14 %} {{ label }}</a> {% endfor %}
+          {% if row.edit %}<a class="btn btn-sm" href="{{ row.edit }}" title="Editar">{% icon "pencil" 14 %}</a>{% endif %}
+          {% if row.delete %}<a class="btn btn-sm btn-danger" href="{{ row.delete }}" title="Eliminar">{% icon "trash-2" 14 %}</a>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="{{ headers|length|add:1 }}"><div class="text-center muted" style="padding:30px">{% icon "inbox" 32 %}<p class="mt-1 mb-0">No hay registros{% if q %} para “{{ q }}”{% endif %}.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/pagination.html" with page=page_obj %}
+{% endblock %}

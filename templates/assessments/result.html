@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Resultado · {{ course.title }}{% endblock %}
+{% block body_class %}no-select{% endblock %}
+{% block body_attrs %}{% if celebrate %}data-celebrate="1"{% endif %}{% endblock %}
+{% block content %}
+<div class="container section" style="max-width:920px">
+  <div class="card result-hero">
+    <div class="score-ring {% if not attempt.passed %}fail{% endif %}" style="--p: {{ attempt.score }}"><span>{{ attempt.score }}%</span></div>
+    {% if attempt.passed %}
+      <h1>¡Felicitaciones, aprobaste!</h1>
+      <p class="muted">Acertaste <strong>{{ attempt.correct_count }} de {{ attempt.total }}</strong> preguntas en {{ attempt.duration_display }}. {% if certificate %}Tu certificado ya está disponible.{% endif %}</p>
+      <div class="flex gap-2 wrap" style="justify-content:center">
+        {% if certificate %}<a class="btn btn-gold btn-lg" href="{{ certificate.get_absolute_url }}">{% icon "award" 18 %} Ver mi certificado</a>{% endif %}
+        <a class="btn btn-lg" href="{% url 'courses:explore' %}">{% icon "compass" 18 %} Seguir aprendiendo</a>
+      </div>
+    {% else %}
+      <h1>Esta vez no fue suficiente</h1>
+      <p class="muted">Obtuviste {{ attempt.correct_count }} de {{ attempt.total }} ({{ attempt.score }}%). Necesitas al menos <strong>{{ attempt.passing_score }}%</strong>. {% if attempt.timed_out %}Se agotó el tiempo antes de terminar.{% endif %}</p>
+      <div class="flex gap-2 wrap" style="justify-content:center">
+        <a class="btn btn-navy btn-lg" href="{{ course.get_absolute_url }}">{% icon "rotate-ccw" 18 %} Repasar el curso</a>
+        {% if attempts_left != 0 %}<a class="btn btn-primary btn-lg" href="{% url 'assessments:intro' course.slug %}">{% icon "repeat" 18 %} Intentar de nuevo</a>{% endif %}
+      </div>
+      {% if attempts_left is not None %}<p class="small muted mt-2 mb-0">Intentos restantes: {{ attempts_left }}</p>{% endif %}
+    {% endif %}
+  </div>
+
+  {% if show_review %}
+  <section class="card card-pad mt-3">
+    <div class="flex justify-between items-center wrap gap-2">
+      <h2 style="font-size:20px;margin:0">Revisión de respuestas</h2>
+      <span class="small muted">{% icon "info" 14 %} Úsala para reforzar lo que aún no dominas</span>
+    </div>
+    {% for item in items %}
+    <div class="review-item">
+      <h3>{% if item.is_correct %}<span style="color:var(--success)">{% icon "circle-check" 20 %}</span>{% else %}<span style="color:var(--accent)">{% icon "circle-x" 20 %}</span>{% endif %}<span>{{ item.number }}. {{ item.text }}</span></h3>
+      {% for opt in item.options %}
+      <div class="option static {% if opt.is_correct %}correct{% elif opt.chosen %}wrong{% endif %}">
+        <span class="letter">{{ opt.letter }}</span><span style="flex:1">{{ opt.text }}</span>
+        {% if opt.chosen %}<span class="pill {% if opt.is_correct %}pill-success{% else %}pill-red{% endif %}">Tu respuesta</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% if not item.answered %}<p class="small" style="color:var(--accent)">No respondiste esta pregunta.</p>{% endif %}
+      {% if item.explanation %}<div class="explain">{% icon "lightbulb" 17 %}<span>{{ item.explanation }}</span></div>{% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "panel/base.html" %}
+{% block title %}Panel · Eliminar{% endblock %}
+{% block panel %}
+<div class="card card-pad" style="max-width:560px">
+  <div class="stat-icon red mb-2" style="width:56px;height:56px">{% icon "trash-2" 26 %}</div>
+  <h1 style="font-size:24px">¿Eliminar «{{ object }}»?</h1>
+  <p class="muted">Esta acción no se puede deshacer. Se eliminará también la información que dependa de este registro (por ejemplo, lecciones, intentos o certificados asociados).</p>
+  <form method="post" class="flex gap-1">
+    {% csrf_token %}
+    <button class="btn btn-primary">{% icon "trash-2" 16 %} Sí, eliminar</button>
+    <a class="btn" href="{{ back_url }}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

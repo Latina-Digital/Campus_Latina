@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz.title }} · {{ course.title }}{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <nav class="crumbs"><a href="{{ course.get_absolute_url }}">{{ course.title }}</a>{% icon "chevron-right" 13 %}<span>Evaluación</span></nav>
+    <div class="eyebrow">{% icon "clipboard-check" 14 %} Evaluación oficial</div>
+    <h1>{{ quiz.title }}</h1>
+    <p>Demuestra lo que aprendiste en «{{ course.title }}» y obtén tu certificado.</p>
+  </div>
+</header>
+<div class="container section" style="max-width:920px">
+  {% if certificate %}
+    <div class="alert success mb-3">{% icon "award" 20 %}<div><strong>Ya aprobaste esta evaluación.</strong> Puedes volver a rendirla para mejorar tu nota. <a href="{{ certificate.get_absolute_url }}">Ver certificado</a></div></div>
+  {% endif %}
+
+  <div class="card card-pad">
+    <div class="rules">
+      <div class="rule">{% icon "list-checks" 22 %}<strong>{{ quiz.effective_question_count }}</strong><small>preguntas al azar</small></div>
+      <div class="rule">{% icon "timer" 22 %}<strong>{{ quiz.time_limit_minutes }} min</strong><small>tiempo límite</small></div>
+      <div class="rule">{% icon "target" 22 %}<strong>{{ quiz.passing_score }}%</strong><small>para aprobar</small></div>
+      <div class="rule">{% icon "repeat" 22 %}<strong>{% if attempts_left is None %}∞{% else %}{{ attempts_left }}{% endif %}</strong><small>intentos disponibles</small></div>
+    </div>
+    {% if quiz.instructions %}<div class="prose mb-2">{{ quiz.instructions|linebreaks }}</div>{% endif %}
+    <ul class="check-list mb-3">
+      <li>{% icon "check" 17 %} Las preguntas y el orden de las respuestas cambian en cada intento.</li>
+      <li>{% icon "check" 17 %} Tus respuestas se guardan automáticamente mientras respondes.</li>
+      <li>{% icon "check" 17 %} Si se acaba el tiempo, la evaluación se califica con lo que alcanzaste a responder.</li>
+      <li>{% icon "check" 17 %} No cierres ni recargues la página durante la evaluación.</li>
+    </ul>
+
+    {% if not unlocked %}
+      <div class="alert warning mb-2">{% icon "lock" 20 %}<div><strong>Evaluación bloqueada.</strong> Completa todas las lecciones del curso para habilitarla ({{ progress.completed_ids|length }} de {{ progress.lessons|length }} completadas).</div></div>
+      {% if progress.next_lesson %}<a class="btn btn-navy btn-lg" href="{{ progress.next_lesson.get_absolute_url }}">{% icon "play" 18 %} Ir a la siguiente lección</a>{% endif %}
+    {% elif active %}
+      <div class="alert mb-2">{% icon "clock" 20 %}<div>Tienes un intento en curso. Te quedan <strong>{{ active.remaining_seconds|floatformat:0 }} segundos</strong> aprox.</div></div>
+      <a class="btn btn-primary btn-lg" href="{% url 'assessments:take' active.pk %}">{% icon "play" 18 %} Continuar evaluación</a>
+    {% elif attempts_left == 0 %}
+      <div class="alert error">{% icon "ban" 20 %}<div>Ya usaste todos los intentos permitidos. Comunícate con tu supervisor o con Capacitación.</div></div>
+    {% else %}
+      <form method="post">{% csrf_token %}
+        <button class="btn btn-primary btn-lg">{% icon "play" 18 %} {% if history %}Nuevo intento{% else %}Comenzar evaluación{% endif %}</button>
+        {% if user.is_staff and not progress.lessons_done %}<span class="small muted" style="margin-left:10px">Como gestor puedes rendirla sin completar las lecciones.</span>{% endif %}
+      </form>
+    {% endif %}
+  </div>
+
+  {% if history %}
+  <section class="section">
+    <h2 style="font-size:20px">Tus intentos</h2>
+    <div class="card table-wrap">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Fecha</th><th>Aciertos</th><th>Nota</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        {% for a in history %}
+          <tr>
+            <td>{{ forloop.revcounter }}</td>
+            <td>{{ a.finished_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ a.correct_count }} / {{ a.total }}</td>
+            <td><strong>{{ a.score }}%</strong></td>
+            <td>{% if a.passed %}<span class="pill pill-success">Aprobado</span>{% else %}<span class="pill pill-red">Reprobado</span>{% endif %}</td>
+            <td class="actions"><a class="btn btn-sm" href="{% url 'assessments:result' a.pk %}">Revisión</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

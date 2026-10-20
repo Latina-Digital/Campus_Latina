@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Explorar cursos{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">{% icon "compass" 14 %} Catálogo de formación</div>
+    <h1>{% if filters.q %}Resultados para “{{ filters.q }}”{% else %}Explorar cursos{% endif %}</h1>
+    <p>Aprende sobre cada producto de Industrial Latina e Induless, técnicas de aplicación y habilidades comerciales.</p>
+    <form class="flex gap-2 wrap mt-3" style="max-width:640px">
+      <div class="input-icon" style="flex:1;min-width:220px">{% icon "search" 17 %}<input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="¿Qué quieres aprender hoy?" aria-label="Buscar cursos"></div>
+      {% for k, v in filters.items %}{% if k != "q" and v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      <button class="btn btn-gold">Buscar</button>
+    </form>
+  </div>
+</header>
+
+<div class="container section">
+  <div class="with-sidebar">
+    <aside class="side-filter card card-pad">
+      <div class="filter-group">
+        <h4>Marca</h4>
+        <a class="filter-link {% if not filters.marca %}active{% endif %}" href="?{% query_replace marca='' page='' %}">Todas</a>
+        {% for value, label in brands %}<a class="filter-link {% if filters.marca == value %}active{% endif %}" href="?{% query_replace marca=value page='' %}">{{ label }}</a>{% endfor %}
+      </div>
+      <div class="filter-group">
+        <h4>Categoría</h4>
+        <a class="filter-link {% if not filters.categoria %}active{% endif %}" href="?{% query_replace categoria='' page='' %}">Todas</a>
+        {% for c in categories %}<a class="filter-link {% if filters.categoria == c.slug %}active{% endif %}" href="?{% query_replace categoria=c.slug page='' %}"><span>{% icon c.icon 15 %} {{ c.name }}</span><span class="n">{{ c.n }}</span></a>{% endfor %}
+      </div>
+      <div class="filter-group mb-0">
+        <h4>Nivel</h4>
+        <a class="filter-link {% if not filters.nivel %}active{% endif %}" href="?{% query_replace nivel='' page='' %}">Todos</a>
+        {% for value, label in levels %}<a class="filter-link {% if filters.nivel == value %}active{% endif %}" href="?{% query_replace nivel=value page='' %}">{{ label }}</a>{% endfor %}
+      </div>
+    </aside>
+
+    <section>
+      <div class="flex justify-between items-center wrap gap-2 mb-2">
+        <p class="mb-0 muted"><strong style="color:var(--text)">{{ total }}</strong> curso{{ total|pluralize }} {% if has_filters %}· <a href="{% url 'courses:explore' %}">Limpiar filtros</a>{% endif %}</p>
+        <form class="flex items-center gap-1" x-data @change="$el.submit()">
+          {% for k, v in filters.items %}{% if k != "orden" and v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label for="orden" class="small muted">Ordenar:</label>
+          <select id="orden" name="orden" class="input select" style="min-height:38px;width:auto">
+            <option value="populares" {% if filters.orden == "populares" %}selected{% endif %}>Más populares</option>
+            <option value="recientes" {% if filters.orden == "recientes" %}selected{% endif %}>Más recientes</option>
+            <option value="valorados" {% if filters.orden == "valorados" %}selected{% endif %}>Mejor valorados</option>
+            <option value="az" {% if filters.orden == "az" %}selected{% endif %}>A → Z</option>
+          </select>
+        </form>
+      </div>
+      {% if page.object_list %}
+      <div class="course-grid">{% for course in page.object_list %}{% include "partials/course_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+      {% else %}
+      <div class="empty">{% icon "search-x" 44 %}<h3>No encontramos cursos</h3><p>Prueba con otras palabras o quita algunos filtros.</p><a class="btn btn-navy" href="{% url 'courses:explore' %}">Ver todos los cursos</a></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

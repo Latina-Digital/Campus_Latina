@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Evaluación en curso{% endblock %}
+{% block body_class %}quiz-mode no-select{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+{{ attempt.answers|json_script:"saved-answers" }}
+<div class="quiz-shell" x-data="quizRunner({
+    total: {{ questions|length }},
+    remaining: {{ remaining }},
+    autosaveUrl: '{% url 'assessments:autosave' attempt.pk %}',
+    answers: JSON.parse(document.getElementById('saved-answers').textContent)
+  })">
+  <div class="quiz-top">
+    <div>
+      <h1>{{ quiz.title }}</h1>
+      <small>{{ course.title }} · <span x-text="answeredCount">0</span>/{{ questions|length }} respondidas</small>
+    </div>
+    <div class="timer" :class="timerClass" role="timer" aria-live="off">{% icon "timer" 18 %} <span x-text="clock">--:--</span></div>
+  </div>
+
+  <div class="q-dots" aria-label="Navegación de preguntas">
+    {% for q in questions %}
+    <button type="button" class="q-dot" :class="{ current: current === {{ forloop.counter0 }}, answered: answers['{{ q.id }}'] }" @click="go({{ forloop.counter0 }})" aria-label="Pregunta {{ q.number }}">{{ q.number }}</button>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="{% url 'assessments:submit' attempt.pk %}" x-ref="form">
+    {% csrf_token %}
+    <input type="hidden" name="timeout" value="0" x-ref="timeout">
+    {% for q in questions %}
+    <section class="card q-card" x-show="current === {{ forloop.counter0 }}" {% if not forloop.first %}x-cloak{% endif %}>
+      <div class="q-num">Pregunta {{ q.number }} de {{ questions|length }}</div>
+      <h2>{{ q.text }}</h2>
+      {% for opt in q.options %}
+      <label class="option">
+        <input type="radio" name="q_{{ q.id }}" value="{{ opt.id }}" {% if opt.chosen %}checked{% endif %} @change="pick('{{ q.id }}', {{ opt.id }})">
+        <span class="letter">{{ opt.letter }}</span>
+        <span>{{ opt.text }}</span>
+      </label>
+      {% endfor %}
+      <div class="quiz-actions">
+        <button type="button" class="btn" @click="go(current - 1)" {% if forloop.first %}disabled{% endif %}>{% icon "arrow-left" 16 %} Anterior</button>
+        {% if forloop.last %}
+          <button type="button" class="btn btn-primary" @click="submit()">{% icon "send" 16 %} Enviar evaluación</button>
+        {% else %}
+          <button type="button" class="btn btn-navy" @click="go(current + 1)">Siguiente {% icon "arrow-right" 16 %}</button>
+        {% endif %}
+      </div>
+    </section>
+    {% endfor %}
+    <div class="text-center mt-3">
+      <button type="button" class="btn btn-ghost" @click="submit()">{% icon "send" 16 %} Enviar ahora (<span x-text="answeredCount"></span>/{{ questions|length }})</button>
+    </div>
+  </form>
+
+  <div x-ref="timeupModal" class="mobile-drawer" style="display:none;align-items:center;justify-content:center;padding:16px">
+    <div class="card card-pad text-center" style="max-width:440px;border-top:6px solid var(--accent)">
+      <div class="stat-icon red" style="width:72px;height:72px;margin:0 auto 14px">{% icon "alarm-clock-off" 36 %}</div>
+      <h2>¡Se terminó el tiempo!</h2>
+      <p class="muted">Tu evaluación se está calificando con las respuestas que alcanzaste a registrar…</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

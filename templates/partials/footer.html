@@ -1,0 +1,32 @@
+{% load static %}
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <span class="brand"><img src="{% static 'img/logo-mark.png' %}" alt="" style="height:44px"><span class="brand-text"><strong>CAMPUS <span style="color:var(--gold-500)">LATINA</span></strong></span></span>
+        <p class="mt-2" style="max-width:360px">La escuela de formación comercial y técnica de {{ CAMPUS_COMPANY }} e Induless. Aprende, certifícate y vende con seguridad.</p>
+        <p class="tagline">“Calidad que pinta tu mundo”</p>
+      </div>
+      <div>
+        <h4>Aprender</h4>
+        <ul>
+          <li><a href="{% url 'courses:explore' %}">Explorar cursos</a></li>
+          <li><a href="{% url 'courses:paths' %}">Rutas de aprendizaje</a></li>
+          <li><a href="{% url 'catalog:list' %}">Catálogo de productos</a></li>
+          <li><a href="{% url 'core:ranking' %}">Ranking</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Certificados</h4>
+        <ul>
+          <li><a href="{% url 'certificates:list' %}">Mis certificados</a></li>
+          <li><a href="{% url 'certificates:verify' %}">Verificar un certificado</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© {% now "Y" %} {{ CAMPUS_COMPANY }} · Industria ecuatoriana, construyendo un mejor país.</span>
+      <span>Uso interno · Departamento Comercial</span>
+    </div>
+  </div>
+</footer>

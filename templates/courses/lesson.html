@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} · {{ course.title }}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="player" x-data="lessonPlayer({
+    lessonId: {{ lesson.pk }},
+    kind: '{{ lesson.kind }}',
+    youtubeId: '{{ lesson.youtube_id }}',
+    completed: {{ state.completed_at|yesno:'true,false' }},
+    canSkip: {{ can_skip|yesno:'true,false' }},
+    startAt: {{ state.position_seconds|floatformat:'0' }},
+    maxTime: {{ state.max_position_seconds|floatformat:'0' }},
+    percent: {{ progress.percent }},
+    lessonsDone: {{ progress.lessons_done|yesno:'true,false' }},
+    completeUrl: '{% url 'courses:lesson_complete' lesson.pk %}',
+    positionUrl: '{% url 'courses:lesson_position' lesson.pk %}'
+  })">
+  <aside class="player-side" :class="{ collapsed: !sideOpen }">
+    <div class="ps-head">
+      <a class="back" href="{{ course.get_absolute_url }}">{% icon "arrow-left" 14 %} Volver al curso</a>
+      <h3>{{ course.title }}</h3>
+      <div class="flex justify-between small" style="font-weight:600"><span>Tu avance</span><span x-text="percent + '%'">{{ progress.percent }}%</span></div>
+      <div class="progress thin mt-1"><span :style="'width:' + percent + '%'" style="width:{{ progress.percent }}%"></span></div>
+      <button class="btn btn-sm btn-block mt-2 menu-toggle" type="button" @click="sideOpen = !sideOpen">
+        <span x-show="!sideOpen">{% icon "list" 15 %} Ver contenido</span><span x-show="sideOpen" x-cloak>{% icon "chevron-up" 15 %} Ocultar contenido</span>
+      </button>
+    </div>
+    <div class="ps-list">
+      {% for module in modules %}
+        <div class="ps-module">{{ forloop.counter }}. {{ module.title }}</div>
+        {% for item in module.lessons.all %}
+        <a class="ps-lesson {% if item.pk == lesson.pk %}current{% endif %}" href="{{ item.get_absolute_url }}" {% if item.pk == lesson.pk %}aria-current="page"{% endif %}>
+          <span class="st {% if item.pk in progress.completed_ids %}done{% endif %}" data-lesson-status="{{ item.pk }}">{% if item.pk in progress.completed_ids %}{% icon "check" 13 %}{% endif %}</span>
+          <span>{{ item.title }}<small>{% icon item.icon 13 %} {{ item.duration_minutes|minutes }}</small></span>
+        </a>
+        {% endfor %}
+      {% endfor %}
+      {% if quiz %}
+      <div class="ps-quiz">
+        <a class="btn btn-block {% if progress.quiz_passed %}btn-gold{% else %}btn-navy{% endif %}" href="{% url 'assessments:intro' course.slug %}" :class="{ disabled: !lessonsDone && !{{ user.is_staff|yesno:'true,false' }} }">
+          {% icon "clipboard-check" 17 %} {% if progress.quiz_passed %}Evaluación aprobada{% else %}Evaluación final{% endif %}
+        </a>
+        <p class="small muted text-center mt-1 mb-0" x-show="!lessonsDone">Se habilita al completar todas las lecciones.</p>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <section class="player-main">
+    {% if lesson.kind == "video" and lesson.video %}
+      <div class="stage"><video x-ref="video" src="{{ lesson.video.url }}" controls controlslist="nodownload noplaybackrate" disablepictureinpicture playsinline preload="metadata" oncontextmenu="return false"></video></div>
+      <div class="watch-note" x-show="mustWatch">{% icon "eye" 17 %}<span>Mira el video completo para completar la lección. No se puede adelantar la primera vez <strong x-show="duration" x-text="'(' + watchPercent + '% visto)'"></strong>.</span></div>
+      <div class="watch-note ok" x-show="completed" x-cloak>{% icon "circle-check" 17 %}<span>Lección completada. Puedes ver el video cuantas veces quieras.</span></div>
+    {% elif lesson.kind == "youtube" and lesson.youtube_id %}
+      <div class="stage"><div id="yt-player"></div></div>
+    {% elif lesson.kind == "documento" and lesson.document %}
+      <div class="stage-doc"><iframe src="{{ lesson.document.url }}#toolbar=0" title="{{ lesson.title }}"></iframe></div>
+    {% endif %}
+
+    <div class="lesson-head">
+      <div>
+        <div class="eyebrow mb-0">Lección {{ number }} de {{ progress.lessons|length }} · {{ lesson.get_kind_display }}</div>
+        <h1>{{ lesson.title }}</h1>
+      </div>
+      <div class="flex gap-1">
+        <span class="pill pill-success" x-show="completed" {% if not state.completed_at %}x-cloak{% endif %}>{% icon "check" 13 %} Completada</span>
+      </div>
+    </div>
+
+    {% if lesson.content %}<article class="prose mt-2">{{ lesson.content|safe }}</article>{% endif %}
+
+    <div class="lesson-nav">
+      {% if prev_lesson %}<a class="btn" href="{{ prev_lesson.get_absolute_url }}">{% icon "arrow-left" 16 %} Anterior</a>{% else %}<span></span>{% endif %}
+      <div class="flex gap-1 wrap">
+        {% if lesson.kind != "video" and lesson.kind != "youtube" or can_skip %}
+        <button class="btn" type="button" x-show="!completed" @click="complete(false)" :disabled="busy">{% icon "check" 16 %} Marcar como completada</button>
+        {% elif lesson.kind == "youtube" %}
+        <button class="btn" type="button" x-show="!completed" @click="complete(false)" :disabled="busy">{% icon "check" 16 %} Ya vi el video</button>
+        {% endif %}
+        {% if next_lesson %}
+          <a class="btn btn-primary" href="{{ next_lesson.get_absolute_url }}" @click="if (!completed && !mustWatch) complete(true)">Siguiente lección {% icon "arrow-right" 16 %}</a>
+        {% elif quiz %}
+          <a class="btn btn-primary" href="{% url 'assessments:intro' course.slug %}" @click="if (!completed && !mustWatch) complete(true)">Ir a la evaluación {% icon "arrow-right" 16 %}</a>
+        {% else %}
+          <a class="btn btn-primary" href="{{ course.get_absolute_url }}" @click="if (!completed && !mustWatch) complete(true)">Terminar curso {% icon "flag" 16 %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

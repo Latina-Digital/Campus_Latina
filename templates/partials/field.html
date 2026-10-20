@@ -1,0 +1,14 @@
+{% if field.is_hidden %}{{ field }}{% elif field.widget_type == "checkbox" %}
+<div class="field field-check {% if field|is_wide %}span-2{% endif %}">
+  {{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.help_text %}<small class="help" style="margin:0">· {{ field.help_text }}</small>{% endif %}
+  {{ field.errors }}
+</div>
+{% else %}
+<div class="field {% if field.errors %}has-error{% endif %} {% if field|is_wide %}span-2{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color:var(--accent)">*</span>{% endif %}</label>
+  {{ field }}
+  {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+  {{ field.errors }}
+</div>
+{% endif %}

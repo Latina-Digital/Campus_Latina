@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block description %}{{ product.summary }}{% endblock %}
+{% block content %}
+<div class="container section">
+  <a class="small muted" href="{% url 'catalog:list' %}">{% icon "arrow-left" 14 %} Catálogo de productos</a>
+  <div class="product-detail mt-2">
+    <div class="product-img">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}{% icon "package" 90 %}{% endif %}{% brand_badge product.brand %}</div>
+    <div>
+      <div class="course-cat">{{ product.line.name|default:"Producto" }}</div>
+      <h1 class="mt-1">{{ product.name }}</h1>
+      <p class="text-2" style="font-size:17px">{{ product.summary }}</p>
+      {% if product.presentations %}<p class="flex items-center gap-1 wrap">{% icon "box" 17 "muted" %} <strong>Presentaciones:</strong> {{ product.presentations }}</p>{% endif %}
+      <div class="flex gap-1 wrap mb-3">
+        {% if product.datasheet %}<a class="btn btn-navy" href="{{ product.datasheet.url }}" target="_blank" rel="noopener">{% icon "file-down" 17 %} Ficha técnica</a>{% endif %}
+        {% if courses %}<a class="btn btn-primary" href="#cursos">{% icon "graduation-cap" 17 %} Cursos de este producto</a>{% endif %}
+        {% if user.is_staff %}<a class="btn" href="{% url 'panel:product_edit' product.pk %}">{% icon "pencil" 16 %} Editar</a>{% endif %}
+      </div>
+      {% if product.description %}<div class="prose mb-3">{{ product.description|linebreaks }}</div>{% endif %}
+      <div class="grid-2">
+        {% if product.features_list %}
+        <div class="card card-pad"><h3>{% icon "sparkles" 18 %} Características</h3><ul class="check-list">{% for f in product.features_list %}<li>{% icon "check" 17 %}<span>{{ f }}</span></li>{% endfor %}</ul></div>
+        {% endif %}
+        {% if product.uses_list %}
+        <div class="card card-pad"><h3>{% icon "hard-hat" 18 %} Usos recomendados</h3><ul class="check-list">{% for f in product.uses_list %}<li>{% icon "arrow-right" 17 %}<span>{{ f }}</span></li>{% endfor %}</ul></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if courses %}
+  <section class="section" id="cursos">
+    <div class="section-head"><div><h2>Aprende a vender {{ product.name }}</h2><p>Cursos donde se explica este producto</p></div></div>
+    <div class="course-grid">{% for course in courses %}{% include "partials/course_card.html" %}{% endfor %}</div>
+  </section>
+  {% endif %}
+
+  {% if similar %}
+  <section class="section">
+    <div class="section-head"><h2>Productos de la misma línea</h2></div>
+    <div class="product-grid">
+      {% for p in similar %}
+      <a class="card product-card" href="{{ p.get_absolute_url }}">
+        <div class="product-img">{% if p.image %}<img src="{{ p.image.url }}" alt="" loading="lazy">{% else %}{% icon "package" 56 %}{% endif %}{% brand_badge p.brand %}</div>
+        <div class="product-body"><h3>{{ p.name }}</h3><p>{{ p.summary|truncatechars:90 }}</p></div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

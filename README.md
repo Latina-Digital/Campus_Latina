@@ -28,7 +28,7 @@ Plataforma de formación de **Industrial Latina S.A.** e **Induless**: cursos so
 | Capa | Herramienta |
 | --- | --- |
 | Backend | Python 3.12+ · Django 6 |
-| Base de datos | SQLite (por defecto) o PostgreSQL |
+| Base de datos | SQLite (por defecto), SQL Server o PostgreSQL |
 | Frontend | Plantillas Django · CSS propio con variables de tema · Alpine.js · Lucide · Chart.js · Quill |
 | PDF | ReportLab (certificados con QR) |
 | Importación | python-docx, openpyxl |

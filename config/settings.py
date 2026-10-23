@@ -85,9 +85,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Base de datos: SQLite por defecto. Para PostgreSQL definir DB_ENGINE=postgresql
-# y las variables DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT (requiere psycopg).
-if env("DB_ENGINE", "sqlite") == "postgresql":
+# Base de datos: SQLite por defecto. Para SQL Server definir DB_ENGINE=sqlserver y
+# DB_NAME, DB_HOST (servidor o servidor\instancia), DB_PORT, DB_USER, DB_PASSWORD.
+# Sin DB_USER se usa autenticación de Windows (la identidad del grupo de IIS).
+# Para PostgreSQL, DB_ENGINE=postgresql con las mismas variables (requiere psycopg).
+DB_ENGINE = env("DB_ENGINE", "sqlite").strip().lower()
+if DB_ENGINE in {"sqlserver", "mssql"}:
+    DATABASES = {
+        "default": {
+            "ENGINE": "mssql",
+            "NAME": env("DB_NAME", "CampusLatina"),
+            "USER": env("DB_USER", ""),
+            "PASSWORD": env("DB_PASSWORD", ""),
+            "HOST": env("DB_HOST", "localhost"),
+            "PORT": env("DB_PORT", ""),
+            "OPTIONS": {
+                "driver": env("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
+                # SQL Server local suele usar un certificado propio: se acepta sin validarlo.
+                "extra_params": env("DB_EXTRA_PARAMS", "TrustServerCertificate=yes"),
+            },
+        }
+    }
+elif DB_ENGINE == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",

@@ -7,25 +7,38 @@
 
     powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -Dominio campus.latina.com.ec -Https
 
-  o, si solo hay IP pública y un puerto:
+  o, si solo hay IP pública y un puerto (-IpLocal permite entrar también desde la red interna):
 
-    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -Puerto 7003
+    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -IpLocal 192.168.1.97 -Puerto 7010
 
-  Es seguro volver a ejecutarlo: no borra datos ni reemplaza un .env existente.
+  Para guardar los datos en SQL Server en lugar de SQLite, agrega:
+
+    -SqlServidor localhost -SqlBase CampusLatina -SqlUsuario campus -SqlClave "la-clave"
+
+  (-SqlServidor acepta "servidor\INSTANCIA"; sin -SqlUsuario se usa autenticación de Windows).
+
+  Es seguro volver a ejecutarlo: no borra datos ni reemplaza un .env existente
+  (solo actualiza las líneas DB_* si se pasan los parámetros -Sql*).
 
   Requisitos previos (ver DESPLIEGUE_IIS.md):
     - IIS instalado
     - HttpPlatformHandler v1.2  https://www.iis.net/downloads/microsoft/httpplatformhandler
     - Python 3.12 o superior instalado "para todos los usuarios"
     - URL Rewrite (solo si usas -Https, para redirigir http -> https)
+    - ODBC Driver 18 for SQL Server (solo si usas -SqlServidor)
 #>
 param(
     [string]$Dominio = "",
     [string]$IpPublica = "",
+    [string]$IpLocal = "",
     [int]$Puerto = 80,
     [switch]$Https,
     [string]$NombreSitio = "CampusLatina",
-    [string]$Python = ""
+    [string]$Python = "",
+    [string]$SqlServidor = "",
+    [string]$SqlBase = "CampusLatina",
+    [string]$SqlUsuario = "",
+    [string]$SqlClave = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +47,17 @@ Set-Location $AppDir
 
 function Paso($texto) { Write-Host "`n==> $texto" -ForegroundColor Cyan }
 function Falla($texto) { Write-Host "`nERROR: $texto" -ForegroundColor Red; exit 1 }
+
+# Cambia CLAVE=valor en .env (también si estaba comentada) o la agrega al final.
+function Set-EnvValor($clave, $valor) {
+    $ruta = Join-Path $AppDir ".env"
+    $texto = [IO.File]::ReadAllText($ruta)
+    $linea = "$clave=$valor"
+    $re = [regex]"(?m)^#?\s*$clave=.*$"
+    if ($re.IsMatch($texto)) { $texto = $re.Replace($texto, [Text.RegularExpressions.MatchEvaluator]{ param($m) $linea }, 1) }
+    else { $texto = $texto.TrimEnd() + "`r`n$linea`r`n" }
+    [IO.File]::WriteAllText($ruta, $texto, (New-Object Text.UTF8Encoding $false))
+}
 
 # ---------------------------------------------------------------- Comprobaciones
 Paso "Comprobando requisitos"
@@ -62,6 +86,16 @@ if ($Python -like "*\Users\*") {
     Write-Host "Aviso: Python está instalado en una carpeta de usuario ($Python). IIS podría no tener acceso; se recomienda instalarlo para todos los usuarios." -ForegroundColor Yellow
 }
 Write-Host "Python $version -> $Python"
+$DriverSql = ""
+if ($SqlServidor) {
+    $DriverSql = Get-OdbcDriver -Platform 64-bit -ErrorAction SilentlyContinue |
+        Where-Object Name -match '^ODBC Driver (18|17) for SQL Server$' |
+        Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name
+    if (-not $DriverSql) {
+        Falla "Falta 'ODBC Driver 18 for SQL Server'. Descárgalo de https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server e instálalo."
+    }
+    Write-Host "SQL Server: $SqlServidor (base $SqlBase) con $DriverSql"
+}
 
 # ---------------------------------------------------------------- Entorno Python
 Paso "Preparando entorno virtual y dependencias"
@@ -75,6 +109,7 @@ if ($LASTEXITCODE -ne 0) { Falla "No se pudieron instalar las dependencias." }
 $hosts = @("localhost", "127.0.0.1")
 if ($Dominio) { $hosts += $Dominio }
 if ($IpPublica) { $hosts += $IpPublica }
+if ($IpLocal) { $hosts += $IpLocal }
 $esquema = if ($Https) { "https" } else { "http" }
 $hostPublico = if ($Dominio) { $Dominio } elseif ($IpPublica) { $IpPublica } else { "localhost" }
 $puertoUrl = if (($Https -and $Puerto -eq 443) -or (-not $Https -and $Puerto -eq 80)) { "" } else { ":$Puerto" }
@@ -100,9 +135,27 @@ if (-not (Test-Path ".env")) {
     }
 }
 
+if ($SqlServidor) {
+    Paso "Configurando SQL Server en .env"
+    Set-EnvValor "DB_ENGINE" "sqlserver"
+    Set-EnvValor "DB_HOST" $SqlServidor
+    Set-EnvValor "DB_NAME" $SqlBase
+    Set-EnvValor "DB_USER" $SqlUsuario
+    # Entre comillas para que caracteres como # o espacios de la clave no se pierdan.
+    Set-EnvValor "DB_PASSWORD" ('"' + $SqlClave.Replace('\', '\\').Replace('"', '\"') + '"')
+    Set-EnvValor "DB_DRIVER" $DriverSql
+    if (-not $SqlUsuario) {
+        Write-Host "Aviso: sin -SqlUsuario, IIS se conectará como 'IIS APPPOOL\$NombreSitio'. Ese inicio de sesión debe existir en SQL Server con permiso db_owner en $SqlBase." -ForegroundColor Yellow
+    }
+}
+
 # ---------------------------------------------------------------- Django
 Paso "Base de datos y archivos estáticos"
 New-Item -ItemType Directory -Force -Path data, media, logs | Out-Null
+if ((Get-Content ".env" -Raw) -match "(?m)^DB_ENGINE=(sqlserver|mssql)") {
+    & $VenvPy manage.py preparar_sqlserver
+    if ($LASTEXITCODE -ne 0) { Falla "No se pudo preparar la base en SQL Server (ver el mensaje de arriba)." }
+}
 & $VenvPy manage.py migrate --noinput
 if ($LASTEXITCODE -ne 0) { Falla "Falló la migración de la base de datos." }
 & $VenvPy manage.py collectstatic --noinput -v 0

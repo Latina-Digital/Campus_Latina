@@ -7,7 +7,7 @@ Guía para instalar el campus en un servidor Windows con IIS y dejarlo accesible
 ```
 Internet ──https──> IIS (puerto 443/80, certificado SSL)
                      └─ HttpPlatformHandler ──http──> Waitress + Django (127.0.0.1, puerto interno)
-                                                        ├─ data\campus.sqlite3   (base de datos)
+                                                        ├─ SQL Server o data\campus.sqlite3 (base de datos)
                                                         ├─ media\                (videos, imágenes, PDFs subidos)
                                                         └─ API Syspro (7070)     (login corporativo)
 ```
@@ -23,6 +23,7 @@ IIS recibe las visitas, maneja el certificado HTTPS y arranca la aplicación Pyt
 | URL Rewrite 2.1 | https://www.iis.net/downloads/microsoft/url-rewrite | Para redirigir http → https |
 | **Python 3.12 o superior** | https://www.python.org/downloads/windows/ | Marcar **Install for all users** y **Add python.exe to PATH** |
 | Git | https://git-scm.com/download/win | Para descargar y actualizar el código |
+| ODBC Driver 18 for SQL Server | https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server | Solo si los datos van en SQL Server |
 
 ## 2. Instalar
 
@@ -40,23 +41,58 @@ Con dominio y HTTPS (recomendado):
 powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -Dominio campus.latina.com.ec -Https
 ```
 
-Solo con IP pública y un puerto:
+Solo con IP pública y un puerto (`-IpLocal` permite entrar también desde la red interna):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -Puerto 7003
+powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -IpLocal 192.168.1.97 -Puerto 7010
 ```
+
+Con IP pública y los datos en **SQL Server** del mismo servidor:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -IpLocal 192.168.1.97 -Puerto 7010 `
+    -SqlServidor localhost -SqlBase CampusLatina -SqlUsuario campus -SqlClave "la-clave"
+```
+
+Sin `-SqlServidor` los datos quedan en SQLite (`data\campus.sqlite3`). Ver [SQL Server](#sql-server) para preparar el usuario.
 
 El script:
 1. Verifica los requisitos.
 2. Crea el entorno de Python e instala las dependencias.
 3. Genera el `.env` de producción con una clave secreta nueva y `DEBUG=False`.
-4. Crea la base de datos y el usuario `admin` (contraseña `Latina2026*`).
+4. Crea la base de datos (en SQL Server la crea si no existe), las tablas y el usuario `admin` (contraseña `Latina2026*`).
 5. Crea el sitio y el grupo de aplicaciones en IIS.
 6. Asigna permisos y abre el puerto en el firewall de Windows.
 
 Se puede volver a ejecutar sin perder datos.
 
-> El puerto 7003 hoy lo usa la versión anterior del campus. Detén ese sitio en IIS antes de instalar en el mismo puerto, o usa otro.
+> Usa un puerto libre (el 7003 ya lo ocupa otro sitio). Para ver los puertos en uso: `Get-WebBinding | Select-Object bindingInformation`.
+
+### SQL Server
+
+El campus usa su **propia base** (`CampusLatina`) y crea sus tablas; no toca las bases de Syspro ni las del campus anterior.
+
+1. Instala **ODBC Driver 18 for SQL Server** (64 bits).
+2. En SQL Server Management Studio crea un inicio de sesión para el campus. Con permiso `dbcreator`, el instalador crea la base solo:
+
+   ```sql
+   CREATE LOGIN campus WITH PASSWORD = 'una-clave-segura', CHECK_POLICY = ON;
+   ALTER SERVER ROLE dbcreator ADD MEMBER campus;
+   ```
+
+   Si prefieres crear la base tú mismo:
+
+   ```sql
+   CREATE DATABASE CampusLatina;
+   USE CampusLatina;
+   CREATE USER campus FOR LOGIN campus;
+   ALTER ROLE db_owner ADD MEMBER campus;
+   ```
+
+3. SQL Server debe aceptar **autenticación de SQL Server** (modo mixto) y conexiones **TCP/IP** (SQL Server Configuration Manager). Si es una instancia con nombre, usa `-SqlServidor "localhost\NOMBRE"`.
+4. Para probar la conexión en cualquier momento: `.venv\Scripts\python manage.py preparar_sqlserver`.
+
+Para cambiar una instalación existente de SQLite a SQL Server, vuelve a ejecutar el instalador con los parámetros `-Sql*`. La base nueva empieza con el contenido de ejemplo; lo cargado en SQLite no se copia.
 
 ## 3. Configurar el login con Syspro
 
@@ -98,7 +134,7 @@ Después, en `.env`: `HTTPS=True` y `CAMPUS_PUBLIC_URL` / `DJANGO_CSRF_TRUSTED_O
 3. Revisa y ajusta los cursos de ejemplo desde el panel.
 4. Programa el respaldo diario (Programador de tareas):
    `powershell -ExecutionPolicy Bypass -File C:\inetpub\Campus_Latina\deploy\respaldo.ps1`
-   Copia la carpeta `backups` a otro disco o a la nube.
+   Copia la carpeta `backups` a otro disco o a la nube. Con SQL Server, ese respaldo incluye los archivos subidos (`media`); la base `CampusLatina` se respalda con los planes de mantenimiento de SQL Server, igual que las demás bases.
 
 ## Actualizar a una nueva versión
 
@@ -129,4 +165,4 @@ Hace un respaldo, descarga los cambios, aplica migraciones y reinicia el sitio.
 
 ## Capacidad
 
-SQLite funciona bien para cientos de usuarios con uso normal. Si el campus crece mucho (muchos usuarios rindiendo evaluaciones al mismo tiempo), se puede pasar a PostgreSQL cambiando las variables `DB_*` del `.env`.
+SQLite funciona bien para cientos de usuarios con uso normal. Si el campus crece mucho (muchos usuarios rindiendo evaluaciones al mismo tiempo), se puede pasar a SQL Server (ver [SQL Server](#sql-server)) o PostgreSQL cambiando las variables `DB_*` del `.env`.

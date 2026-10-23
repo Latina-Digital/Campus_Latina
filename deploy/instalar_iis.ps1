@@ -5,27 +5,25 @@
 .DESCRIPTION
   Ejecutar en PowerShell COMO ADMINISTRADOR desde la carpeta del proyecto:
 
-    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -Dominio campus.latina.com.ec -Https
+    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -IpLocal 192.168.1.97 -Puerto 7010 -ApiKey "LA-API-KEY"
 
-  o, si solo hay IP pública y un puerto (-IpLocal permite entrar también desde la red interna):
+  o con dominio y HTTPS:
 
-    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -IpPublica 181.78.203.134 -IpLocal 192.168.1.97 -Puerto 7010
+    powershell -ExecutionPolicy Bypass -File .\deploy\instalar_iis.ps1 -Dominio campus.latina.com.ec -Https -ApiKey "LA-API-KEY"
 
-  Para guardar los datos en SQL Server en lugar de SQLite, agrega:
-
-    -SqlServidor localhost -SqlBase CampusLatina -SqlUsuario campus -SqlClave "la-clave"
-
-  (-SqlServidor acepta "servidor\INSTANCIA"; sin -SqlUsuario se usa autenticación de Windows).
+  Los usuarios y todos los datos vienen de la API Syspro (puerto 7070):
+    - login:  api/syspro/users
+    - datos:  api/syspro/campus/datos  (requiere deploy\api_campus\01_campus_nuevo.sql en la base CAMPUS)
+  -ApiBase indica dónde está la API (por defecto http://192.168.1.97:7070).
 
   Es seguro volver a ejecutarlo: no borra datos ni reemplaza un .env existente
-  (solo actualiza las líneas DB_* si se pasan los parámetros -Sql*).
+  (solo actualiza la API key y las URL de la API si se pasan -ApiKey / -ApiBase).
 
   Requisitos previos (ver DESPLIEGUE_IIS.md):
     - IIS instalado
     - HttpPlatformHandler v1.2  https://www.iis.net/downloads/microsoft/httpplatformhandler
     - Python 3.12 o superior instalado "para todos los usuarios"
     - URL Rewrite (solo si usas -Https, para redirigir http -> https)
-    - ODBC Driver 18 for SQL Server (solo si usas -SqlServidor)
 #>
 param(
     [string]$Dominio = "",
@@ -35,10 +33,8 @@ param(
     [switch]$Https,
     [string]$NombreSitio = "CampusLatina",
     [string]$Python = "",
-    [string]$SqlServidor = "",
-    [string]$SqlBase = "CampusLatina",
-    [string]$SqlUsuario = "",
-    [string]$SqlClave = ""
+    [string]$ApiBase = "",
+    [string]$ApiKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -86,16 +82,6 @@ if ($Python -like "*\Users\*") {
     Write-Host "Aviso: Python está instalado en una carpeta de usuario ($Python). IIS podría no tener acceso; se recomienda instalarlo para todos los usuarios." -ForegroundColor Yellow
 }
 Write-Host "Python $version -> $Python"
-$DriverSql = ""
-if ($SqlServidor) {
-    $DriverSql = Get-OdbcDriver -Platform 64-bit -ErrorAction SilentlyContinue |
-        Where-Object Name -match '^ODBC Driver (18|17) for SQL Server$' |
-        Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name
-    if (-not $DriverSql) {
-        Falla "Falta 'ODBC Driver 18 for SQL Server'. Descárgalo de https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server e instálalo."
-    }
-    Write-Host "SQL Server: $SqlServidor (base $SqlBase) con $DriverSql"
-}
 
 # ---------------------------------------------------------------- Entorno Python
 Paso "Preparando entorno virtual y dependencias"
@@ -125,9 +111,8 @@ if (-not (Test-Path ".env")) {
     $contenido = $contenido -replace "(?m)^DJANGO_ALLOWED_HOSTS=.*$", "DJANGO_ALLOWED_HOSTS=$($hosts -join ',')"
     $contenido = $contenido -replace "(?m)^DJANGO_CSRF_TRUSTED_ORIGINS=.*$", "DJANGO_CSRF_TRUSTED_ORIGINS=$urlPublica"
     $contenido = $contenido -replace "(?m)^CAMPUS_PUBLIC_URL=.*$", "CAMPUS_PUBLIC_URL=$urlPublica"
-    $contenido += "`r`n# --- Producción ---`r`nHTTPS=$(if ($Https) {'True'} else {'False'})`r`nSQLITE_PATH=data/campus.sqlite3`r`n"
+    $contenido += "`r`n# --- Producción ---`r`nHTTPS=$(if ($Https) {'True'} else {'False'})`r`n"
     [IO.File]::WriteAllText((Join-Path $AppDir ".env"), $contenido, (New-Object Text.UTF8Encoding $false))
-    Write-Host "Revisa .env para completar la conexión con Syspro (SYSPRO_*)." -ForegroundColor Yellow
 } else {
     Write-Host ".env ya existe: no se modifica."
     if ((Get-Content ".env" -Raw) -match "(?m)^DJANGO_DEBUG=True") {
@@ -135,32 +120,23 @@ if (-not (Test-Path ".env")) {
     }
 }
 
-if ($SqlServidor) {
-    Paso "Configurando SQL Server en .env"
-    Set-EnvValor "DB_ENGINE" "sqlserver"
-    Set-EnvValor "DB_HOST" $SqlServidor
-    Set-EnvValor "DB_NAME" $SqlBase
-    Set-EnvValor "DB_USER" $SqlUsuario
-    # Entre comillas para que caracteres como # o espacios de la clave no se pierdan.
-    Set-EnvValor "DB_PASSWORD" ('"' + $SqlClave.Replace('\', '\\').Replace('"', '\"') + '"')
-    Set-EnvValor "DB_DRIVER" $DriverSql
-    if (-not $SqlUsuario) {
-        Write-Host "Aviso: sin -SqlUsuario, IIS se conectará como 'IIS APPPOOL\$NombreSitio'. Ese inicio de sesión debe existir en SQL Server con permiso db_owner en $SqlBase." -ForegroundColor Yellow
-    }
+if ($ApiBase) {
+    $ApiBase = $ApiBase.TrimEnd("/")
+    Set-EnvValor "SYSPRO_API_URL" "$ApiBase/api/syspro/users"
+    Set-EnvValor "CAMPUS_API_URL" "$ApiBase/api/syspro/campus/datos"
+}
+if ($ApiKey) { Set-EnvValor "SYSPRO_API_KEY" $ApiKey }
+if ((Get-Content ".env" -Raw) -notmatch "(?m)^SYSPRO_API_KEY=\S") {
+    Falla "Falta la API key de Syspro. Vuelve a ejecutar con -ApiKey ""LA-API-KEY"" (o escríbela en .env, SYSPRO_API_KEY)."
 }
 
 # ---------------------------------------------------------------- Django
-Paso "Base de datos y archivos estáticos"
+Paso "Datos desde la API y archivos estáticos"
 New-Item -ItemType Directory -Force -Path data, media, logs | Out-Null
-if ((Get-Content ".env" -Raw) -match "(?m)^DB_ENGINE=(sqlserver|mssql)") {
-    & $VenvPy manage.py preparar_sqlserver
-    if ($LASTEXITCODE -ne 0) { Falla "No se pudo preparar la base en SQL Server (ver el mensaje de arriba)." }
-}
-& $VenvPy manage.py migrate --noinput
-if ($LASTEXITCODE -ne 0) { Falla "Falló la migración de la base de datos." }
+& $VenvPy manage.py cargar_api
+if ($LASTEXITCODE -ne 0) { Falla "No se pudo leer la API del campus (ver el mensaje de arriba). Revisa CAMPUS_API_URL y la API key en .env." }
 & $VenvPy manage.py collectstatic --noinput -v 0
 if ($LASTEXITCODE -ne 0) { Falla "Falló collectstatic." }
-& $VenvPy manage.py seed_campus
 & $VenvPy manage.py check --deploy --fail-level ERROR
 if ($LASTEXITCODE -ne 0) { Falla "La configuración tiene errores (ver arriba)." }
 

@@ -90,9 +90,10 @@ class SysproLoginTests(TestCase):
             self.login("CYAGUACHI", "otra")
         self.assertEqual(User.objects.get(username="CYAGUACHI").first_name, "Local")
 
-    def test_local_admin_does_not_call_api(self):
+    def test_local_passwords_are_not_accepted(self):
+        # No hay cuentas propias del campus: todo ingreso se valida en Syspro.
         User.objects.create_user("admin2", password="Clave2026*")
-        with mock.patch("urllib.request.urlopen") as urlopen:
+        urlopen, _ = fake_api({URL_A: []})
+        with mock.patch("urllib.request.urlopen", urlopen):
             r = self.login("admin2", "Clave2026*")
-        self.assertEqual(r.status_code, 302)
-        urlopen.assert_not_called()
+        self.assertContains(r, "Usuario o contraseña incorrectos")

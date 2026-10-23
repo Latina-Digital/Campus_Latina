@@ -25,7 +25,7 @@ from apps.core.models import Announcement
 from apps.courses.models import Category, Course, Enrollment, LearningPath, Lesson, LessonProgress, Module, Resource
 
 from . import forms
-from .importers import import_users, read_questions, save_questions
+from .importers import read_questions, save_questions
 
 
 def staff_required(view):
@@ -263,9 +263,7 @@ class UserList(PanelList):
     title = "Usuarios del campus"
     template_name = "panel/users.html"
     search_fields = ["username", "first_name", "last_name", "supervisor", "email"]
-    create_url = "panel:user_create"
-    edit_url = "panel:user_edit"
-    delete_url = "panel:user_delete"
+    subtitle = "Personas que ya ingresaron al campus. Los usuarios, roles y supervisores se administran en Syspro."
     columns = [
         ("Nombre", lambda u: format_html('<div class="cell-user"><span class="avatar avatar-initials" style="width:32px;height:32px;font-size:12px">{}</span><div><strong>{}</strong><small>@{}</small></div></div>', u.initials, u.display_name, u.username)),
         ("Rol", lambda u: badge(u.get_role_display(), "gold" if u.is_staff else "navy")),
@@ -284,70 +282,7 @@ class UserList(PanelList):
         ctx = super().get_context_data(**kwargs)
         ctx["roles"] = User.Role.choices
         ctx["role"] = self.request.GET.get("rol", "")
-        ctx["import_form"] = forms.ImportFileForm()
         return ctx
-
-
-class UserFormMixin:
-    section = "users"
-    admin_only = True
-    model = User
-    form_class = forms.UserForm
-    list_url = "panel:user_list"
-    template_name = "panel/user_form.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["supervisores"] = sorted(set(User.objects.exclude(supervisor="").values_list("supervisor", flat=True)))
-        return ctx
-
-
-class UserCreate(UserFormMixin, PanelCreate):
-    title = "Nuevo usuario"
-
-
-class UserUpdate(UserFormMixin, PanelUpdate):
-    pass
-
-
-class UserDelete(PanelDelete):
-    section = "users"
-    admin_only = True
-    model = User
-    list_url = "panel:user_list"
-
-    def form_valid(self, form):
-        if self.object == self.request.user:
-            messages.error(self.request, "No puedes eliminar tu propia cuenta.")
-            return redirect("panel:user_list")
-        return super().form_valid(form)
-
-
-@admin_required
-@require_POST
-def user_import(request):
-    form = forms.ImportFileForm(request.POST, request.FILES)
-    if form.is_valid():
-        try:
-            created, updated, errors = import_users(form.cleaned_data["file"])
-        except Exception as exc:  # archivo dañado o formato desconocido
-            messages.error(request, f"No se pudo leer el archivo: {exc}")
-            return redirect("panel:user_list")
-        messages.success(request, f"Importación lista: {created} usuarios nuevos, {updated} actualizados.")
-        for error in errors[:8]:
-            messages.warning(request, error)
-    return redirect("panel:user_list")
-
-
-@admin_required
-def user_template(request):
-    response = HttpResponse(content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = 'attachment; filename="plantilla_usuarios.csv"'
-    response.write("﻿")
-    writer = csv.writer(response, delimiter=";")
-    writer.writerow(["usuario", "nombres", "apellidos", "contrasena", "rol", "supervisor", "area", "ciudad", "correo"])
-    writer.writerow(["jperez", "Juan Carlos", "Pérez Mora", "Latina2026", "ejecutivo", "Fernando Abarca", "Ventas Costa", "Guayaquil", "jperez@latina.com"])
-    return response
 
 
 # --------------------------------------------------------------------------- Cursos
@@ -579,9 +514,8 @@ def _save_question(quiz, form, question=None):
     question.explanation = form.cleaned_data["explanation"]
     question.save()
     question.choices.all().delete()
-    Choice.objects.bulk_create(
-        [Choice(question=question, text=text, is_correct=ok, order=i) for i, (text, ok) in enumerate(form.choices())]
-    )
+    for i, (text, ok) in enumerate(form.choices()):
+        Choice.objects.create(question=question, text=text, is_correct=ok, order=i)
     return question
 
 

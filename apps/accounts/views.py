@@ -5,13 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, render
 
 from apps.core.gamification import level_info, user_badges, user_points
 from apps.courses.models import Enrollment
 
-from .forms import CampusPasswordChangeForm, LoginForm, ProfileForm
+from .forms import LoginForm
 from .models import User
 
 
@@ -50,38 +49,14 @@ class LoginView(auth_views.LoginView):
         return response
 
 
-class PasswordChangeView(auth_views.PasswordChangeView):
-    template_name = "accounts/password_change.html"
-    form_class = CampusPasswordChangeForm
-    success_url = reverse_lazy("accounts:profile")
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not request.user.has_usable_password():
-            messages.info(request, "Tu contraseña se administra en el sistema corporativo (Syspro).")
-            return redirect("accounts:profile")
-        return super().dispatch(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        messages.success(self.request, "Tu contraseña fue actualizada.")
-        return super().form_valid(form)
-
-
 @login_required
 def profile(request, username=None):
+    # Solo lectura: los datos personales vienen de Syspro.
     person = get_object_or_404(User, username=username, is_active=True) if username else request.user
-    is_me = person == request.user
-    form = None
-    if is_me:
-        form = ProfileForm(request.POST or None, request.FILES or None, instance=person)
-        if request.method == "POST" and form.is_valid():
-            form.save()
-            messages.success(request, "Perfil actualizado.")
-            return redirect("accounts:profile")
     stats = user_points(person)
     context = {
         "person": person,
-        "is_me": is_me,
-        "form": form,
+        "is_me": person == request.user,
         "stats": stats,
         "level": level_info(stats["points"]),
         "badges": user_badges(person, stats),

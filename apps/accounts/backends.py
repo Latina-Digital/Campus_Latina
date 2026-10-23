@@ -11,7 +11,9 @@ Respuestas observadas:
     404 / sin conexión                -> se prueba la siguiente URL configurada
 
 La API key vive solo en el servidor (archivo .env), nunca en el navegador.
-Si las credenciales son válidas se crea o actualiza la cuenta del campus.
+Si las credenciales son válidas se crea o actualiza el usuario en la copia local
+del campus (no hay tabla de usuarios en la API: nombre, rol y supervisor se copian
+en sus inscripciones).
 """
 import json
 import logging
@@ -152,6 +154,7 @@ class SysproBackend(BaseBackend):
         if user.pk and user.origin != User.Origin.SYSPRO:
             logger.warning("Existe una cuenta local «%s»: no se reemplaza con datos de Syspro.", user.username)
             return None
+        before = (user.first_name, user.last_name, user.supervisor, user.role)
         full_name = pick(info, "name")
         if full_name:
             user.first_name, user.last_name = split_name(full_name)
@@ -168,6 +171,11 @@ class SysproBackend(BaseBackend):
         if not user.pk:
             user.set_unusable_password()
         user.save()
+        if before != (user.first_name, user.last_name, user.supervisor, user.role):
+            # No hay tabla de usuarios en la API: estos datos van copiados en sus inscripciones.
+            from apps.apidata.sync import push_user_profile
+
+            push_user_profile(user)
         logger.info("Ingreso Syspro: %s (%s)", user.username, user.role)
         return user if user.is_active else None
 

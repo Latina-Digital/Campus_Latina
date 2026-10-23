@@ -10,6 +10,5 @@ urlpatterns = [
     path("salir/", auth_views.LogoutView.as_view(), name="logout"),
     path("perfil/", views.profile, name="profile"),
     path("perfil/<str:username>/", views.profile, name="public_profile"),
-    path("contrasena/", views.PasswordChangeView.as_view(), name="password_change"),
     path("mi-equipo/", views.team, name="team"),
 ]

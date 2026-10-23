@@ -1,9 +1,7 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.contrib.auth.forms import AuthenticationForm
 
 from apps.core.forms import StyledFormMixin
-
-from .models import User
 
 
 class LoginForm(StyledFormMixin, AuthenticationForm):
@@ -28,14 +26,3 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
                 code="syspro_unavailable",
             )
         return super().get_invalid_login_error()
-
-
-class ProfileForm(StyledFormMixin, forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ["first_name", "last_name", "email", "headline", "city", "area", "avatar"]
-        labels = {"first_name": "Nombres", "last_name": "Apellidos", "email": "Correo"}
-
-
-class CampusPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
-    pass

@@ -18,17 +18,16 @@ Plataforma de formación de **Industrial Latina S.A.** e **Induless**: cursos so
 - Resumen con indicadores y gráficos.
 - Constructor de cursos: módulos, lecciones con editor de texto enriquecido, materiales descargables y evaluación.
 - Banco de preguntas: carga manual o importación desde **Word (.docx)**, **Excel/CSV** o texto pegado.
-- Usuarios: alta, edición, roles e importación masiva desde Excel/CSV.
+- Usuarios: consulta de quienes ya ingresaron (los usuarios, roles y supervisores se administran en Syspro).
 - Resultados con filtros, exportación a Excel/CSV e informe imprimible por intento.
 - Certificados (consulta y revocación), productos, categorías, rutas y anuncios.
-- Administración avanzada de Django en `/django-admin/` (solo superusuarios).
 
 ## Tecnología
 
 | Capa | Herramienta |
 | --- | --- |
 | Backend | Python 3.12+ · Django 6 |
-| Base de datos | SQLite (por defecto), SQL Server o PostgreSQL |
+| Datos | SQL Server a través de la API Syspro (`api/syspro/campus/datos`) · copia de trabajo local en SQLite |
 | Frontend | Plantillas Django · CSS propio con variables de tema · Alpine.js · Lucide · Chart.js · Quill |
 | PDF | ReportLab (certificados con QR) |
 | Importación | python-docx, openpyxl |
@@ -40,7 +39,8 @@ Las librerías de JavaScript están en `static/vendor/`, así que el campus func
 
 ```
 config/            Configuración del proyecto (settings, urls)
-apps/accounts/     Usuarios, roles, login (incluye conexión opcional con Syspro), perfil, Mi equipo
+apps/accounts/     Usuarios, roles, login con Syspro, perfil, Mi equipo
+apps/apidata/      Conexión con la API de datos: carga inicial y envío de cada cambio
 apps/courses/      Cursos, módulos, lecciones, progreso, reseñas, rutas
 apps/assessments/  Evaluaciones, preguntas, intentos y calificación
 apps/certificates/ Certificados, PDF con QR y verificación pública
@@ -48,38 +48,47 @@ apps/catalog/      Catálogo de productos
 apps/core/         Portada, ranking, gamificación, anuncios, datos iniciales (seed)
 apps/panel/        Panel de gestión e importadores
 templates/         HTML de todas las páginas
+deploy/api_campus/ Script SQL (tablas dbo.CV_*) y código C# del endpoint para la API Syspro
 static/            CSS, JS, imágenes de marca y librerías
 legacy/            Versión anterior (index.html único) como referencia
 ```
 
+## Dónde están los datos
+
+- **Usuarios:** los de Syspro. Se ingresa con el usuario y la clave de Syspro (`api/syspro/users`); no hay cuentas propias del campus.
+- **Todo lo demás** (cursos, avance, evaluaciones, certificados, productos, anuncios): en SQL Server, base `CAMPUS`, tablas `dbo.CV_*`, a través del endpoint `api/syspro/campus/datos`. El script de las tablas y el código C# del endpoint están en [deploy/api_campus/](deploy/api_campus/).
+- Al arrancar, el campus descarga todo desde la API a una copia de trabajo (`data/copia_api.sqlite3`) para leer rápido. Cada cambio se envía primero a la API; si la API falla, el cambio se cancela.
+- Los archivos subidos (videos, portadas, PDF) quedan en `media/`.
+
 ## Puesta en marcha (Windows)
 
-Opción rápida: doble clic en **`iniciar_campus.bat`**. Instala todo la primera vez y abre el campus en http://127.0.0.1:8000.
+Opción rápida: doble clic en **`iniciar_campus.bat`**. La primera vez instala todo y crea el `.env`: escribe la API key en `SYSPRO_API_KEY` y vuelve a ejecutarlo. Abre el campus en http://127.0.0.1:8000.
 
 Opción manual:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-copy .env.example .env               # y ajusta los valores
-.venv\Scripts\python manage.py migrate
-.venv\Scripts\python manage.py seed_campus          # admin + contenido de ejemplo
+copy .env.example .env               # y escribe la API key en SYSPRO_API_KEY
+.venv\Scripts\python manage.py cargar_api       # prueba la API y descarga los datos
 .venv\Scripts\python manage.py runserver 0.0.0.0:8000
 ```
 
-### Usuario administrador
+### Contenido de ejemplo
 
-`seed_campus` crea el usuario **`admin`** con la contraseña **`Latina2026*`**. Cámbiala desde *Mi perfil → Cambiar contraseña* al ingresar, o al crear el usuario con `--admin-password`.
+Si la API todavía no tiene cursos, `seed_campus` carga 6 cursos (Duralin, Satinado, Elastomérico, Siliconas, Induzinc y Venta consultiva), 8 productos, 3 rutas y un anuncio, y los guarda en SQL Server por la API:
 
-### Datos de ejemplo
+```bash
+.venv\Scripts\python manage.py seed_campus
+```
 
-- `seed_campus` carga 6 cursos (Duralin, Satinado, Elastomérico, Siliconas, Induzinc y Venta consultiva), 8 productos, 3 rutas y un anuncio. El curso de Duralin usa las 10 preguntas de la versión anterior. **Revisa los textos con las fichas técnicas oficiales** antes de publicarlos al equipo. Las imágenes de producto salen de la foto de exhibición; reemplázalas por fotos oficiales desde el panel.
-- `seed_campus --demo` agrega 10 usuarios ficticios (contraseña `Demo2026*`) con actividad para ver el ranking y los gráficos.
-- `seed_campus --remove-demo` borra esos usuarios antes de salir a producción.
+**Revisa los textos con las fichas técnicas oficiales** antes de publicarlos al equipo. Las imágenes de producto salen de la foto de exhibición; reemplázalas por fotos oficiales desde el panel.
+
+Sin `CAMPUS_API_URL` en `.env` el campus trabaja solo con una base local, útil para desarrollo: ahí `seed_campus --demo` agrega 10 usuarios ficticios con actividad para ver el ranking y los gráficos. Los usuarios demo nunca se cargan en la API.
 
 ## Login corporativo (Syspro)
 
-Si `SYSPRO_ENABLED=True` en `.env`, un usuario que no exista en el campus se valida contra la API de Syspro y se crea automáticamente con su nombre, rol y supervisor. A diferencia de la versión anterior, la API key ya no se envía al navegador: queda solo en el servidor. Los usuarios listados en `SYSPRO_ADMIN_USERS` entran como administradores.
+Todo ingreso se valida contra la API de Syspro: el campus toma de ahí el nombre, el rol y el supervisor de cada persona. A diferencia de la versión anterior, la API key ya no se envía al navegador: queda solo en el servidor. Los usuarios listados en `SYSPRO_ADMIN_USERS` entran como administradores.
 
 La petición es `POST` con `{"user": "...", "pass": "...", "ApiKey": "..."}`. Si la API responde con una lista con datos, el ingreso es válido; si responde `[]`, el usuario o la clave son incorrectos.
 

@@ -19,11 +19,6 @@ urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     # Usuarios
     path("usuarios/", views.UserList.as_view(), name="user_list"),
-    path("usuarios/nuevo/", views.UserCreate.as_view(), name="user_create"),
-    path("usuarios/<int:pk>/", views.UserUpdate.as_view(), name="user_edit"),
-    path("usuarios/<int:pk>/eliminar/", views.UserDelete.as_view(), name="user_delete"),
-    path("usuarios/importar/", views.user_import, name="user_import"),
-    path("usuarios/plantilla.csv", views.user_template, name="user_template"),
     # Cursos
     path("cursos/", views.CourseList.as_view(), name="course_list"),
     path("cursos/nuevo/", views.CourseCreate.as_view(), name="course_create"),

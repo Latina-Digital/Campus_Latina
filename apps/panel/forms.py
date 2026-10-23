@@ -1,53 +1,10 @@
 from django import forms
-from django.contrib.auth.password_validation import validate_password
 
-from apps.accounts.models import User
 from apps.assessments.models import Quiz
 from apps.catalog.models import Product, ProductLine
 from apps.core.forms import StyledFormMixin
 from apps.core.models import Announcement
 from apps.courses.models import Category, Course, LearningPath, Lesson, Module, PathStep, Resource
-
-
-class UserForm(StyledFormMixin, forms.ModelForm):
-    password = forms.CharField(
-        label="Contraseña", required=False, widget=forms.TextInput(attrs={"autocomplete": "new-password"}),
-        help_text="Déjala vacía para no cambiarla.",
-    )
-
-    class Meta:
-        model = User
-        fields = ["first_name", "last_name", "username", "email", "role", "supervisor", "area", "city", "headline", "is_active"]
-        labels = {"first_name": "Nombres", "last_name": "Apellidos", "username": "Usuario (login)", "email": "Correo", "is_active": "Cuenta activa"}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["first_name"].required = True
-        self.fields["username"].help_text = ""
-        self.fields["supervisor"].widget.attrs["list"] = "supervisores"
-        if not self.instance.pk:
-            self.fields["password"].required = True
-            self.fields["password"].help_text = "Mínimo 6 caracteres. Compártela con el usuario de forma segura."
-            self.fields["password"].widget.attrs["required"] = True
-
-    def clean_password(self):
-        password = self.cleaned_data.get("password")
-        if password:
-            validate_password(password, self.instance)
-        return password
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        if self.cleaned_data.get("password"):
-            user.set_password(self.cleaned_data["password"])
-            user.origin = User.Origin.LOCAL
-        if commit:
-            user.save()
-        return user
-
-
-class ImportFileForm(StyledFormMixin, forms.Form):
-    file = forms.FileField(label="Archivo", help_text="Excel (.xlsx) o CSV.")
 
 
 class CategoryForm(StyledFormMixin, forms.ModelForm):

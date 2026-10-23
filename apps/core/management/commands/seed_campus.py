@@ -1,10 +1,12 @@
 """
-Carga los datos iniciales del campus.
+Carga el contenido inicial del campus (cursos, productos, rutas y un anuncio).
 
-    python manage.py seed_campus                      # admin + contenido de ejemplo
-    python manage.py seed_campus --demo               # además, usuarios demo con actividad
-    python manage.py seed_campus --remove-demo        # elimina los usuarios demo
-    python manage.py seed_campus --admin-password X   # define la clave del admin
+    python manage.py seed_campus                # contenido de ejemplo, si aún no hay cursos
+    python manage.py seed_campus --demo         # además, usuarios demo con actividad (solo sin API)
+    python manage.py seed_campus --remove-demo  # elimina los usuarios demo (solo sin API)
+
+Con CAMPUS_API_URL configurada, el contenido se guarda en SQL Server a través de la API.
+Los usuarios demo nunca se cargan en la API: son solo para desarrollo y pruebas.
 """
 import io
 import random
@@ -13,12 +15,13 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from PIL import Image, ImageDraw, ImageFilter
 
 from apps.accounts.models import User
+from apps.apidata import client
+from apps.apidata.mirror import prepare
 from apps.assessments.models import Attempt, Choice, Question, Quiz
 from apps.catalog.models import Product, ProductLine
 from apps.core import seed_data as data
@@ -29,7 +32,6 @@ from apps.courses.services import check_course_completion
 ASSETS = Path(__file__).resolve().parents[2] / "seed_assets"
 LOGO_MARK = settings.BASE_DIR / "static" / "img" / "logo-mark.png"
 DEMO_PASSWORD = "Demo2026*"
-DEFAULT_ADMIN_PASSWORD = "Latina2026*"
 
 PALETTES = {
     "latina": ((6, 18, 48), (18, 64, 143), (250, 204, 0)),
@@ -104,48 +106,30 @@ def course_cover(brand, product_key, seed):
 
 
 class Command(BaseCommand):
-    help = "Crea el usuario administrador y el contenido inicial del campus."
+    help = "Crea el contenido inicial del campus."
 
     def add_arguments(self, parser):
-        parser.add_argument("--admin-user", default="admin")
-        parser.add_argument("--admin-password", default=None, help=f"Por defecto {DEFAULT_ADMIN_PASSWORD} al crearlo.")
         parser.add_argument("--demo", action="store_true", help="Crea usuarios demo con actividad para ver el ranking y los gráficos.")
         parser.add_argument("--remove-demo", action="store_true", help="Elimina los usuarios demo.")
 
     def handle(self, *args, **opts):
+        if client.enabled():
+            if opts["demo"] or opts["remove_demo"]:
+                raise CommandError("Los usuarios demo no se cargan en la base real (API). Usa --demo solo sin CAMPUS_API_URL.")
+            # Parte de los datos actuales de la API para no duplicar contenido.
+            prepare()
         if opts["remove_demo"]:
             usernames = [u[0] for u in data.DEMO_USERS] + [s[0] for s in data.DEMO_SUPERVISORS]
             n, _ = User.objects.filter(username__in=usernames).delete()
             self.stdout.write(self.style.SUCCESS(f"Usuarios demo eliminados ({n} registros)."))
             return
-        with transaction.atomic():
-            admin = self.create_admin(opts["admin_user"], opts["admin_password"])
-            if not Course.objects.exists():
-                self.create_content()
-            else:
-                self.stdout.write("Ya existen cursos: se omite el contenido de ejemplo.")
-            if opts["demo"]:
-                self.create_demo()
+        if not Course.objects.exists():
+            self.create_content()
+        else:
+            self.stdout.write("Ya existen cursos: se omite el contenido de ejemplo.")
+        if opts["demo"]:
+            self.create_demo()
         self.stdout.write(self.style.SUCCESS("\nCampus listo."))
-        self.stdout.write(f"  Usuario administrador: {admin.username}")
-        if admin.password_set:
-            self.stdout.write(f"  Contraseña:            {admin.password_set}  (cámbiala al ingresar)")
-
-    def create_admin(self, username, password):
-        admin, created = User.objects.get_or_create(
-            username=username,
-            defaults={"first_name": "Administrador", "last_name": "Campus", "email": "", "role": User.Role.ADMIN, "headline": "Administración del Campus Latina"},
-        )
-        admin.is_superuser = True
-        admin.role = User.Role.ADMIN
-        admin.is_active = True
-        admin.password_set = None
-        if created or password:
-            admin.password_set = password or DEFAULT_ADMIN_PASSWORD
-            admin.set_password(admin.password_set)
-        admin.save()
-        self.stdout.write(("Creado" if created else "Actualizado") + f" el administrador «{username}».")
-        return admin
 
     def create_content(self):
         categories = {}
@@ -183,7 +167,8 @@ class Command(BaseCommand):
             quiz = Quiz.objects.create(course=course, time_limit_minutes=10, questions_per_attempt=10, passing_score=70)
             for q_order, (text, options, correct, explanation) in enumerate(c["questions"], start=1):
                 question = Question.objects.create(quiz=quiz, text=text, explanation=explanation, order=q_order)
-                Choice.objects.bulk_create([Choice(question=question, text=t, is_correct=j == correct, order=j) for j, t in enumerate(options)])
+                for j, t in enumerate(options):
+                    Choice.objects.create(question=question, text=t, is_correct=j == correct, order=j)
             courses.append(course)
         self.stdout.write(f"{len(courses)} cursos con lecciones y evaluaciones creados.")
 

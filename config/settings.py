@@ -5,6 +5,7 @@ Los valores sensibles se leen de variables de entorno o del archivo `.env`
 (ver `.env.example`). Los valores por defecto sirven para desarrollo local.
 """
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     "apps.assessments",
     "apps.certificates",
     "apps.panel",
+    "apps.apidata",
 ]
 
 MIDDLEWARE = [
@@ -85,56 +87,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Base de datos: SQLite por defecto. Para SQL Server definir DB_ENGINE=sqlserver y
-# DB_NAME, DB_HOST (servidor o servidor\instancia), DB_PORT, DB_USER, DB_PASSWORD.
-# Sin DB_USER se usa autenticación de Windows (la identidad del grupo de IIS).
-# Para PostgreSQL, DB_ENGINE=postgresql con las mismas variables (requiere psycopg).
-DB_ENGINE = env("DB_ENGINE", "sqlite").strip().lower()
-if DB_ENGINE in {"sqlserver", "mssql"}:
-    DATABASES = {
-        "default": {
-            "ENGINE": "mssql",
-            "NAME": env("DB_NAME", "CampusLatina"),
-            "USER": env("DB_USER", ""),
-            "PASSWORD": env("DB_PASSWORD", ""),
-            "HOST": env("DB_HOST", "localhost"),
-            "PORT": env("DB_PORT", ""),
-            "OPTIONS": {
-                "driver": env("DB_DRIVER", "ODBC Driver 18 for SQL Server"),
-                # SQL Server local suele usar un certificado propio: se acepta sin validarlo.
-                "extra_params": env("DB_EXTRA_PARAMS", "TrustServerCertificate=yes"),
-            },
-        }
+# Los datos del campus viven en SQL Server y se leen y escriben por la API
+# (CAMPUS_API_URL, ver apps/apidata). Esta base SQLite es solo la copia de trabajo:
+# se vuelve a llenar desde la API cada vez que arranca el sitio. Guarda además las
+# sesiones abiertas.
+SQLITE_PATH = BASE_DIR / env("SQLITE_PATH", "data/copia_api.sqlite3")
+SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": SQLITE_PATH,
+        # Espera en lugar de fallar si otra petición está escribiendo.
+        "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
     }
-elif DB_ENGINE == "postgresql":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME", "campus_latina"),
-            "USER": env("DB_USER", "postgres"),
-            "PASSWORD": env("DB_PASSWORD", ""),
-            "HOST": env("DB_HOST", "localhost"),
-            "PORT": env("DB_PORT", "5432"),
-        }
-    }
-else:
-    # SQLITE_PATH permite guardar la base en otra carpeta (ruta relativa al proyecto).
-    SQLITE_PATH = BASE_DIR / env("SQLITE_PATH", "db.sqlite3")
-    SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": SQLITE_PATH,
-            # Espera en lugar de fallar si otra petición está escribiendo.
-            "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
-        }
-    }
+}
 
 AUTH_USER_MODEL = "accounts.User"
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
-    "apps.accounts.backends.SysproBackend",
-]
+# Los usuarios son los de Syspro: no hay cuentas propias del campus.
+AUTHENTICATION_BACKENDS = ["apps.accounts.backends.SysproBackend"]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 6}},
@@ -201,6 +171,17 @@ SYSPRO_API_URLS = env_list("SYSPRO_API_URLS", "")
 SYSPRO_API_KEY = env("SYSPRO_API_KEY", "")
 SYSPRO_TIMEOUT = int(env("SYSPRO_TIMEOUT", "5"))
 SYSPRO_ADMIN_USERS = [u.lower() for u in env_list("SYSPRO_ADMIN_USERS", "")]
+
+# --- Datos del campus (API) ---------------------------------------------------
+# Endpoint api/syspro/campus/datos. Sin URL, el campus trabaja solo con la base
+# local (desarrollo y pruebas automáticas).
+CAMPUS_API_URL = env("CAMPUS_API_URL", "")
+CAMPUS_API_URLS = env_list("CAMPUS_API_URLS", "")
+CAMPUS_API_KEY = env("CAMPUS_API_KEY", "") or SYSPRO_API_KEY
+CAMPUS_API_TIMEOUT = int(env("CAMPUS_API_TIMEOUT", "20"))
+if sys.argv[1:2] == ["test"]:
+    # Las pruebas nunca escriben en la API real.
+    CAMPUS_API_URL, CAMPUS_API_URLS = "", []
 
 # --- Identidad del campus ----------------------------------------------------
 CAMPUS_NAME = env("CAMPUS_NAME", "Campus Latina")

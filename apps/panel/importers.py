@@ -130,54 +130,6 @@ def save_questions(quiz, questions, replace=False):
     start = quiz.questions.count()
     for i, q in enumerate(questions, start=start + 1):
         question = Question.objects.create(quiz=quiz, text=q["text"], explanation=q.get("explanation", ""), order=i)
-        Choice.objects.bulk_create(
-            [Choice(question=question, text=text[:400], is_correct=ok, order=j) for j, (text, ok) in enumerate(q["choices"])]
-        )
+        for j, (text, ok) in enumerate(q["choices"]):
+            Choice.objects.create(question=question, text=text[:400], is_correct=ok, order=j)
     return len(questions)
-
-
-USER_COLUMNS = {
-    "usuario": "username", "user": "username", "login": "username",
-    "nombres": "first_name", "nombre": "first_name", "apellidos": "last_name", "apellido": "last_name",
-    "nombre_completo": "full_name", "contrasena": "password", "clave": "password", "password": "password",
-    "rol": "role", "supervisor": "supervisor", "area": "area", "zona": "area", "ciudad": "city", "correo": "email", "email": "email",
-}
-ROLE_ALIASES = {
-    "ejecutivo": "ejecutivo", "vendedor": "ejecutivo", "supervisor": "supervisor", "jefe_de_ventas": "jefe_ventas",
-    "jefe_ventas": "jefe_ventas", "jefe_nacional_de_ventas": "jefe_nacional", "jefe_nacional": "jefe_nacional",
-    "admin": "admin", "administrador": "admin",
-}
-
-
-def import_users(file):
-    from apps.accounts.backends import split_name
-    from apps.accounts.models import User
-
-    created, updated, errors = 0, 0, []
-    for n, row in enumerate(_rows_from_table(file), start=2):
-        data = {USER_COLUMNS[k]: v for k, v in row.items() if k in USER_COLUMNS and v}
-        username = data.get("username", "").strip()
-        if not username:
-            errors.append(f"Fila {n}: falta el usuario.")
-            continue
-        if "full_name" in data and "first_name" not in data:
-            data["first_name"], data["last_name"] = split_name(data.pop("full_name"))
-        user = User.objects.filter(username__iexact=username).first()
-        is_new = user is None
-        if is_new:
-            if not data.get("password"):
-                errors.append(f"Fila {n}: el usuario nuevo «{username}» necesita contraseña.")
-                continue
-            user = User(username=username)
-        for field in ("first_name", "last_name", "supervisor", "area", "city", "email"):
-            if field in data:
-                setattr(user, field, data[field].strip())
-        if "role" in data:
-            user.role = ROLE_ALIASES.get(normalize(data["role"]), "ejecutivo")
-        if data.get("password"):
-            user.set_password(data["password"])
-            user.origin = User.Origin.LOCAL
-        user.save()
-        created += is_new
-        updated += not is_new
-    return created, updated, errors

@@ -1,5 +1,7 @@
 ﻿<#
-  Respaldo de la base de datos y los archivos subidos (videos, imágenes, PDFs).
+  Respaldo de los archivos subidos (videos, imágenes, PDFs) y del .env.
+  Los datos del campus están en SQL Server (base CAMPUS, tablas dbo.CV_*): se
+  respaldan con los planes de mantenimiento de SQL Server, no con este script.
   Guarda un .zip en la carpeta backups y conserva los últimos 14.
   Se puede programar a diario con el Programador de tareas de Windows.
 #>
@@ -12,12 +14,6 @@ $stamp = Get-Date -Format "yyyyMMdd_HHmm"
 $tmp = Join-Path $env:TEMP "campus_respaldo_$stamp"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
-# Copia consistente de SQLite usando la API de respaldo de Python.
-$db = Join-Path $AppDir "data\campus.sqlite3"
-if (-not (Test-Path $db)) { $db = Join-Path $AppDir "db.sqlite3" }
-if (Test-Path $db) {
-    & (Join-Path $AppDir ".venv\Scripts\python.exe") -c "import sqlite3,sys; s=sqlite3.connect(sys.argv[1]); d=sqlite3.connect(sys.argv[2]); s.backup(d); d.close(); s.close()" $db (Join-Path $tmp "campus.sqlite3")
-}
 if (Test-Path (Join-Path $AppDir "media")) { Copy-Item (Join-Path $AppDir "media") (Join-Path $tmp "media") -Recurse }
 Copy-Item (Join-Path $AppDir ".env") (Join-Path $tmp ".env") -ErrorAction SilentlyContinue
 

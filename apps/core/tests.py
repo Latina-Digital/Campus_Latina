@@ -2,7 +2,6 @@ import io
 import shutil
 import tempfile
 
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -21,7 +20,7 @@ class CampusFlowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         call_command("seed_campus", "--demo", stdout=io.StringIO())
-        cls.admin = User.objects.get(username="admin")
+        cls.admin = User.objects.create(username="ADMIN", first_name="Administrador", role=User.Role.ADMIN, is_superuser=True)
         cls.learner = User.objects.create_user("tester", password="Prueba2026*", first_name="Ana", last_name="Prueba", supervisor="Fernando Abarca")
 
     @classmethod
@@ -44,7 +43,7 @@ class CampusFlowTests(TestCase):
             reverse("courses:path_detail", args=[course.path_steps.first().path.slug]), course.get_absolute_url(), lesson.get_absolute_url(),
             reverse("assessments:intro", args=[course.slug]), reverse("catalog:list"), reverse("catalog:list") + "?marca=induless",
             reverse("core:ranking"), reverse("core:ranking") + "?vista=equipos&periodo=mes", reverse("accounts:profile"),
-            reverse("accounts:public_profile", args=["mcevallos"]), reverse("certificates:list"), reverse("accounts:password_change"),
+            reverse("accounts:public_profile", args=["mcevallos"]), reverse("certificates:list"),
         ]
         for url in urls:
             self.assertEqual(self.client.get(url).status_code, 200, url)
@@ -116,7 +115,7 @@ class CampusFlowTests(TestCase):
         question = course.quiz.questions.first()
         attempt = Attempt.objects.filter(finished_at__isnull=False).first()
         urls = [
-            reverse("panel:dashboard"), reverse("panel:user_list"), reverse("panel:user_create"), reverse("panel:user_edit", args=[self.learner.pk]),
+            reverse("panel:dashboard"), reverse("panel:user_list"),
             reverse("panel:course_list"), reverse("panel:course_create"), reverse("panel:course_builder", args=[course.pk]),
             reverse("panel:course_edit", args=[course.pk]), reverse("panel:lesson_create", args=[course.pk]),
             reverse("panel:lesson_edit", args=[course.pk, course.lessons.first().pk]), reverse("panel:questions", args=[course.pk]),
@@ -132,22 +131,13 @@ class CampusFlowTests(TestCase):
         self.assertEqual(xlsx.status_code, 200)
         self.assertTrue(xlsx.content.startswith(b"PK"))
 
-    def test_panel_creates_user_and_imports_questions(self):
-        self.client.force_login(self.admin)
-        r = self.client.post(reverse("panel:user_create"), {
-            "first_name": "Pedro", "last_name": "Nuevo", "username": "pnuevo", "role": "ejecutivo", "is_active": "on", "password": "Clave2026*",
-        })
-        self.assertRedirects(r, reverse("panel:user_list"))
-        self.assertTrue(self.client.login(username="pnuevo", password="Clave2026*"))
+    def test_panel_imports_questions(self):
         self.client.force_login(self.admin)
         course = Course.objects.get(title__startswith="Induzinc")
         before = course.quiz.questions.count()
         text = "1. ¿Pregunta de prueba?\na) Uno\n*b) Dos\nc) Tres\n\n2. ¿Otra?\na) Sí\nb) No\nRespuesta: A"
         self.client.post(reverse("panel:questions", args=[course.pk]), {"action": "import", "imp-text": text})
         self.assertEqual(course.quiz.questions.count(), before + 2)
-        csv_file = SimpleUploadedFile("u.csv", "usuario;nombres;apellidos;contrasena;rol;supervisor\nximport;Xavier;Import;Clave2026*;supervisor;Fernando Abarca\n".encode())
-        self.client.post(reverse("panel:user_import"), {"file": csv_file})
-        self.assertEqual(User.objects.get(username="ximport").role, "supervisor")
 
     def test_learner_cannot_access_panel(self):
         self.client.force_login(self.learner)

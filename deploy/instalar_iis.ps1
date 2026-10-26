@@ -133,10 +133,10 @@ if ((Get-Content ".env" -Raw) -notmatch "(?m)^SYSPRO_API_KEY=\S") {
 # ---------------------------------------------------------------- Django
 Paso "Datos desde la API y archivos estáticos"
 New-Item -ItemType Directory -Force -Path data, media, logs | Out-Null
-& $VenvPy manage.py cargar_api
-if ($LASTEXITCODE -ne 0) { Falla "No se pudo leer la API del campus (ver el mensaje de arriba). Revisa CAMPUS_API_URL y la API key en .env." }
 & $VenvPy manage.py collectstatic --noinput -v 0
 if ($LASTEXITCODE -ne 0) { Falla "Falló collectstatic." }
+& $VenvPy manage.py cargar_api
+if ($LASTEXITCODE -ne 0) { Falla "No se pudo leer la API del campus (ver el mensaje de arriba). Revisa CAMPUS_API_URL y la API key en .env." }
 & $VenvPy manage.py check --deploy --fail-level ERROR
 if ($LASTEXITCODE -ne 0) { Falla "La configuración tiene errores (ver arriba)." }
 

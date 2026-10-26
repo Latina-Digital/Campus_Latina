@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.contrib import admin
+from django.templatetags.static import static
 from django.urls import include, path, re_path
+from django.views.generic import RedirectView
 
 from apps.core.views import serve_media
 
@@ -9,6 +11,8 @@ admin.site.site_title = "Campus Latina"
 admin.site.index_title = "Datos de la plataforma"
 
 urlpatterns = [
+    # Algunos navegadores piden /favicon.ico aunque la página declare otro ícono.
+    path("favicon.ico", RedirectView.as_view(url=static("img/favicon.ico"), permanent=False)),
     path("", include("apps.core.urls")),
     path("cuenta/", include("apps.accounts.urls")),
     path("aprender/", include("apps.courses.urls")),

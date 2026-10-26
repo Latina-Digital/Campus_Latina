@@ -6,7 +6,10 @@
   <title>{% block title %}Inicio{% endblock %} · {{ CAMPUS_NAME }}</title>
   <meta name="description" content="{% block description %}Plataforma de formación de Industrial Latina e Induless: cursos, evaluaciones y certificados sobre nuestros productos.{% endblock %}">
   <meta name="theme-color" content="#0A1C40">
-  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  {# ?v= obliga al navegador a dejar el ícono anterior guardado en caché #}
+  <link rel="icon" href="{% static 'img/favicon.ico' %}?v=3" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}?v=3" sizes="32x32">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}?v=3">
   <script>
     try { var t = localStorage.getItem("campus-theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
   </script>

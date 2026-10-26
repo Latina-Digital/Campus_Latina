@@ -66,41 +66,41 @@ Acabado profesional mate
 Altamente lavable
 Calidad Tipo 1', N'Paredes interiores y exteriores
 Tumbados (disimula imperfecciones)
-Proyectos residenciales y comerciales', N'Galón · Caneca', N'products/duralin.jpg', N'', 1, 0, N'2026-10-23T16:53:10.013595'),
+Proyectos residenciales y comerciales', N'Galón · Caneca', N'products/duralin.jpg', N'', 1, 0, N'2026-10-24T13:57:44.358808'),
         (2, N'latina', 1, N'Satinado Latina', N'satinado-latina', N'Acabado fino y especial con un ligero brillo que facilita la limpieza.', N'Pintura de acabado satinado para espacios que se limpian con frecuencia y donde se busca un aspecto elegante.', N'Acabado satinado elegante
 Fácil de limpiar
 Resistente al uso diario', N'Cocinas y baños
 Pasillos y áreas de alto tránsito
-Puertas y molduras', N'Galón · Caneca', N'products/satinado.jpg', N'', 1, 1, N'2026-10-23T16:53:10.035842'),
+Puertas y molduras', N'Galón · Caneca', N'products/satinado.jpg', N'', 1, 1, N'2026-10-24T13:57:44.425823'),
         (3, N'latina', 1, N'Elastomérico Latina', N'elastomerico-latina', N'Recubrimiento acrílico hidrorepelente y flexible para fachadas y techos.', N'Recubrimiento elastomérico que forma una película flexible capaz de acompañar los movimientos de la superficie y repeler el agua de lluvia.', N'Hidrorepelente
 Flexible
 Recubrimiento acrílico
 Puentea microfisuras', N'Fachadas expuestas a lluvia
 Losas y techos
-Paredes con microfisuras', N'Galón · Caneca', N'products/elastomerico.jpg', N'', 1, 2, N'2026-10-23T16:53:10.062057'),
+Paredes con microfisuras', N'Galón · Caneca', N'products/elastomerico.jpg', N'', 1, 2, N'2026-10-24T13:57:44.481310'),
         (4, N'induless', 4, N'Silicón Induless', N'silicon-induless', N'Silicón para sellar juntas en vidrio, aluminio, cerámica y baños.', N'Sellador de silicón en cartucho para aplicar con pistola. Forma un cordón flexible y duradero.', N'Cordón flexible
 Adhiere a superficies no porosas
 Práctico cartucho para pistola', N'Ventanas y vidrios
 Juntas de baños y cocinas
-Sellado de canaletas y uniones', N'Cartucho', N'products/silicon.jpg', N'', 1, 3, N'2026-10-23T16:53:10.083881'),
+Sellado de canaletas y uniones', N'Cartucho', N'products/silicon.jpg', N'', 1, 3, N'2026-10-24T13:57:44.527807'),
         (5, N'induless', 5, N'Induzinc', N'induzinc', N'Planchas onduladas de acero galvanizado para cubiertas livianas y resistentes.', N'Cubierta metálica ondulada con recubrimiento de zinc que protege el acero frente a la corrosión.', N'Acero galvanizado
 Liviana y resistente
 Instalación rápida', N'Techos de viviendas
 Galpones y bodegas
-Cubiertas de patios y parqueaderos', N'Planchas en varias longitudes', N'products/induzinc.jpg', N'', 1, 4, N'2026-10-23T16:53:10.112511'),
+Cubiertas de patios y parqueaderos', N'Planchas en varias longitudes', N'products/induzinc.jpg', N'', 1, 4, N'2026-10-24T13:57:44.583133'),
         (6, N'induless', 6, N'Clavos Induless', N'clavos-induless', N'Clavos para construcción y carpintería en distintas medidas.', N'Clavos de acero para trabajos de construcción, encofrado y carpintería.', N'Acero de calidad
 Variedad de medidas
 Caja práctica', N'Encofrados
 Carpintería
-Fijación de cubiertas (con arandela)', N'Caja', N'products/clavos.jpg', N'', 1, 5, N'2026-10-23T16:53:10.138267'),
+Fijación de cubiertas (con arandela)', N'Caja', N'products/clavos.jpg', N'', 1, 5, N'2026-10-24T13:57:44.624644'),
         (7, N'latina', 2, N'Empaste Latina', N'empaste-latina', N'Empaste para nivelar y alisar paredes antes de pintar.', N'Pasta para corregir imperfecciones y dejar la superficie lisa y uniforme.', N'Fácil de lijar
 Buena adherencia
 Acabado liso', N'Paredes interiores
-Corrección de imperfecciones', N'Galón · Caneca', N'', N'', 1, 6, N'2026-10-23T16:53:10.145396'),
+Corrección de imperfecciones', N'Galón · Caneca', N'', N'', 1, 6, N'2026-10-24T13:57:44.631234'),
         (8, N'latina', 3, N'Sellador Acrílico Latina', N'sellador-acrilico-latina', N'Sellador para preparar superficies nuevas y mejorar el rendimiento de la pintura.', N'Sella la porosidad del enlucido, uniformiza la absorción y mejora la adherencia y el rendimiento de la pintura.', N'Sella la porosidad
 Mejora la adherencia
 Ahorra pintura', N'Enlucidos nuevos (después del curado)
-Superficies porosas', N'Galón · Caneca', N'', N'', 1, 7, N'2026-10-23T16:53:10.150966');
+Superficies porosas', N'Galón · Caneca', N'', N'', 1, 7, N'2026-10-24T13:57:44.641682');
     SET IDENTITY_INSERT dbo.CV_Productos OFF;
 
     -- Categorias: 8
@@ -124,27 +124,27 @@ Superficies porosas', N'Galón · Caneca', N'', N'', 1, 7, N'2026-10-23T16:53:10
 Aprenderás la diferencia entre acabados satinado y mate, las características que hacen única a Duralin y el proceso correcto de preparación de superficies.', N'Diferenciar un acabado satinado de uno mate
 Explicar por qué Duralin Premium Forte es calidad Tipo 1
 Recomendar el producto según el ambiente y la superficie
-Guiar al cliente en la preparación correcta de la pared', N'courses/covers/cover-1.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 1, 0, N'2026-10-23T16:53:10.182527', N'2026-10-23T16:53:10.182537'),
+Guiar al cliente en la preparación correcta de la pared', N'courses/covers/cover-1.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 1, 0, N'2026-10-24T13:57:44.713993', N'2026-10-24T13:57:44.714006'),
         (2, N'Satinado Latina: acabado fino y especial', N'satinado-latina-acabado-fino-y-especial', N'latina', 1, N'basico', N'Aprende cuándo recomendar un acabado satinado y cómo aplicarlo para lograr un resultado elegante y fácil de limpiar.', N'El acabado satinado combina elegancia y practicidad. En este curso verás sus ventajas, en qué espacios conviene y los cuidados para aplicarlo sin marcas.', N'Identificar los espacios ideales para un acabado satinado
 Explicar sus ventajas de limpieza
 Prevenir marcas y empalmes durante la aplicación
-Preparar la superficie para un brillo uniforme', N'courses/covers/cover-2.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 1, N'2026-10-23T16:53:10.675777', N'2026-10-23T16:53:10.675787'),
+Preparar la superficie para un brillo uniforme', N'courses/covers/cover-2.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 1, N'2026-10-24T13:57:45.261586', N'2026-10-24T13:57:45.261607'),
         (3, N'Elastomérico: protección hidrorepelente para fachadas y techos', N'elastomerico-proteccion-hidrorepelente-para-fachadas-y-techos', N'latina', 1, N'intermedio', N'Entiende cómo funciona un recubrimiento elastomérico y cómo asesorar a tus clientes en la protección de fachadas y techos.', N'Los recubrimientos elastoméricos protegen superficies expuestas a la lluvia y a cambios de temperatura. Aprende sus ventajas y su correcta aplicación.', N'Explicar qué es un recubrimiento elastomérico
 Diferenciarlo de una pintura convencional
 Recomendarlo para fachadas, losas y techos
-Guiar una aplicación por capas', N'courses/covers/cover-3.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 0, 0, 2, N'2026-10-23T16:53:11.039472', N'2026-10-23T16:53:11.039481'),
+Guiar una aplicación por capas', N'courses/covers/cover-3.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 0, 0, 2, N'2026-10-24T13:57:45.650173', N'2026-10-24T13:57:45.650186'),
         (4, N'Siliconas Induless: sellado profesional', N'siliconas-induless-sellado-profesional', N'induless', 5, N'basico', N'Aprende a recomendar y aplicar silicón Induless para lograr juntas limpias, flexibles y duraderas.', N'El sellado de juntas es una de las consultas más frecuentes en ferretería. Este curso te enseña a orientar al cliente y a explicar la aplicación paso a paso.', N'Identificar los usos más comunes del silicón
 Explicar la preparación de la junta
 Guiar la aplicación de un cordón continuo
-Evitar los errores más frecuentes', N'courses/covers/cover-4.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 3, N'2026-10-23T16:53:11.416532', N'2026-10-23T16:53:11.416545'),
+Evitar los errores más frecuentes', N'courses/covers/cover-4.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 3, N'2026-10-24T13:57:45.994033', N'2026-10-24T13:57:45.994045'),
         (5, N'Induzinc: cubiertas metálicas e instalación', N'induzinc-cubiertas-metalicas-e-instalacion', N'induless', 6, N'intermedio', N'Conoce las planchas Induzinc de acero galvanizado y las buenas prácticas de instalación que debes explicar al cliente.', N'Las cubiertas metálicas son una solución liviana y rápida. Aprende sus ventajas y los puntos clave de una instalación correcta.', N'Explicar qué es el acero galvanizado
 Describir las ventajas de una cubierta metálica
 Indicar dónde y cómo fijar las planchas
-Recomendar accesorios complementarios', N'courses/covers/cover-5.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 0, 0, 4, N'2026-10-23T16:53:11.750397', N'2026-10-23T16:53:11.750406'),
+Recomendar accesorios complementarios', N'courses/covers/cover-5.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 0, 0, 4, N'2026-10-24T13:57:46.328531', N'2026-10-24T13:57:46.328551'),
         (6, N'Venta consultiva en el punto de venta', N'venta-consultiva-en-el-punto-de-venta', N'corporativo', 8, N'basico', N'Técnicas prácticas para descubrir necesidades, convertir características en beneficios y cerrar más ventas en ferreterías y distribuidores.', N'Vender no es recitar características: es entender el problema del cliente y ofrecerle la mejor solución. Este curso te da herramientas simples para hacerlo todos los días.', N'Hacer preguntas que descubren la necesidad real
 Transformar características en beneficios
 Responder objeciones de precio
-Aumentar el ticket con venta cruzada', N'courses/covers/cover-6.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 5, N'2026-10-23T16:53:11.980529', N'2026-10-23T16:53:11.980539');
+Aumentar el ticket con venta cruzada', N'courses/covers/cover-6.jpg', N'Equipo de Capacitación Latina', N'Industrial Latina S.A.', 1, 1, 0, 5, N'2026-10-24T13:57:46.647405', N'2026-10-24T13:57:46.647418');
     SET IDENTITY_INSERT dbo.CV_Cursos OFF;
 
     -- CursoProductos: 9
@@ -231,9 +231,9 @@ Aumentar el ticket con venta cruzada', N'courses/covers/cover-6.jpg', N'Equipo d
     -- Rutas: 3
     SET IDENTITY_INSERT dbo.CV_Rutas ON;
     INSERT INTO dbo.CV_Rutas ([id], [title], [slug], [summary], [description], [brand], [cover], [is_published], [order], [created_at]) VALUES
-        (1, N'Asesor experto en pinturas Latina', N'asesor-experto-en-pinturas-latina', N'Domina la línea de pinturas de Industrial Latina: acabados, preparación de superficies y protección de fachadas.', N'Recomendada para ejecutivos que atienden ferreterías y distribuidores de pintura.', N'latina', N'', 1, 0, N'2026-10-23T16:53:12.217643'),
-        (2, N'Especialista Induless', N'especialista-induless', N'Siliconas, cubiertas Induzinc y fijaciones: todo lo que necesitas para asesorar en techos y sellado.', N'Ideal para el equipo que atiende la línea de construcción liviana.', N'induless', N'', 1, 1, N'2026-10-23T16:53:12.242535'),
-        (3, N'Vendedor estrella', N'vendedor-estrella', N'Combina técnicas de venta consultiva con el producto estrella de la marca.', N'Un programa corto para mejorar la conversión en el punto de venta.', N'corporativo', N'', 1, 2, N'2026-10-23T16:53:12.262414');
+        (1, N'Asesor experto en pinturas Latina', N'asesor-experto-en-pinturas-latina', N'Domina la línea de pinturas de Industrial Latina: acabados, preparación de superficies y protección de fachadas.', N'Recomendada para ejecutivos que atienden ferreterías y distribuidores de pintura.', N'latina', N'', 1, 0, N'2026-10-24T13:57:46.869857'),
+        (2, N'Especialista Induless', N'especialista-induless', N'Siliconas, cubiertas Induzinc y fijaciones: todo lo que necesitas para asesorar en techos y sellado.', N'Ideal para el equipo que atiende la línea de construcción liviana.', N'induless', N'', 1, 1, N'2026-10-24T13:57:46.894221'),
+        (3, N'Vendedor estrella', N'vendedor-estrella', N'Combina técnicas de venta consultiva con el producto estrella de la marca.', N'Un programa corto para mejorar la conversión en el punto de venta.', N'corporativo', N'', 1, 2, N'2026-10-24T13:57:46.912162');
     SET IDENTITY_INSERT dbo.CV_Rutas OFF;
 
     -- RutaCursos: 7
@@ -472,7 +472,7 @@ Aumentar el ticket con venta cruzada', N'courses/covers/cover-6.jpg', N'Equipo d
     -- Anuncios: 1
     SET IDENTITY_INSERT dbo.CV_Anuncios ON;
     INSERT INTO dbo.CV_Anuncios ([id], [title], [body], [tone], [link_url], [link_label], [is_active], [created_at]) VALUES
-        (1, N'¡Te damos la bienvenida al nuevo Campus Latina!', N'Ahora puedes aprender a tu ritmo, rendir evaluaciones, ganar puntos y descargar certificados verificables. Empieza por el curso obligatorio de Duralin Premium Forte.', N'nuevo', N'/aprender/explorar/', N'Explorar cursos', 1, N'2026-10-23T16:53:12.279861');
+        (1, N'¡Te damos la bienvenida al nuevo Campus Latina!', N'Ahora puedes aprender a tu ritmo, rendir evaluaciones, ganar puntos y descargar certificados verificables. Empieza por el curso obligatorio de Duralin Premium Forte.', N'nuevo', N'/aprender/explorar/', N'Explorar cursos', 1, N'2026-10-24T13:57:46.929557');
     SET IDENTITY_INSERT dbo.CV_Anuncios OFF;
 
 COMMIT TRANSACTION;

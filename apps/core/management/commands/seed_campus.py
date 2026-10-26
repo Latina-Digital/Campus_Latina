@@ -31,6 +31,11 @@ from apps.courses.services import check_course_completion
 
 ASSETS = Path(__file__).resolve().parents[2] / "seed_assets"
 LOGO_MARK = settings.BASE_DIR / "static" / "img" / "logo-mark.png"
+BRAND_LOGOS = {
+    "latina": settings.BASE_DIR / "static" / "img" / "logo-latina.png",
+    "induless": settings.BASE_DIR / "static" / "img" / "logo-induless-fondo.png",
+    "corporativo": LOGO_MARK,
+}
 DEMO_PASSWORD = "Demo2026*"
 
 PALETTES = {
@@ -59,17 +64,42 @@ def _to_file(img, name, fmt="JPEG"):
     return ContentFile(buf.getvalue(), name=name)
 
 
+def _asset(key):
+    """Foto del producto: PNG con fondo transparente (envases) o JPG recortado de una foto."""
+    png = ASSETS / f"prod-{key}.png"
+    if png.exists():
+        return Image.open(png).convert("RGBA"), True
+    return Image.open(ASSETS / f"prod-{key}.jpg").convert("RGBA"), False
+
+
+def _place(canvas, prod, transparent, x, y):
+    """Pega el producto con sombra: al piso si es un envase recortado, en tarjeta si es una foto."""
+    if transparent:
+        shadow = Image.new("RGBA", (prod.width + 120, 120), (0, 0, 0, 0))
+        ImageDraw.Draw(shadow).ellipse((30, 40, prod.width + 90, 80), fill=(0, 0, 0, 170))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+        canvas.alpha_composite(shadow, (x - 60, y + prod.height - 60))
+        canvas.alpha_composite(prod, (x, y))
+        return
+    mask = Image.new("L", prod.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, prod.width, prod.height), radius=28, fill=255)
+    shadow = Image.new("RGBA", (prod.width + 80, prod.height + 80), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((40, 50, prod.width + 40, prod.height + 50), radius=28, fill=(0, 0, 0, 150))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(22))
+    canvas.alpha_composite(shadow, (x - 40, y - 40))
+    canvas.paste(prod, (x, y), mask)
+
+
 def product_image(key):
-    src = Image.open(ASSETS / f"prod-{key}.jpg").convert("RGB")
+    src, transparent = _asset(key)
     size = 800
     canvas = _gradient((size, size), (6, 18, 48), (22, 52, 112))
     glow = Image.new("L", (size, size), 0)
     ImageDraw.Draw(glow).ellipse((120, 120, 680, 680), fill=120)
     glow = glow.filter(ImageFilter.GaussianBlur(90))
-    canvas = Image.composite(Image.new("RGB", (size, size), (60, 100, 190)), canvas, glow)
-    src = _fit(src, 600, 600)
-    x, y = (size - src.width) // 2, (size - src.height) // 2
-    canvas.paste(src, (x, y))
+    canvas = Image.composite(Image.new("RGB", (size, size), (60, 100, 190)), canvas, glow).convert("RGBA")
+    src = _fit(src, 640, 600) if transparent else _fit(src, 600, 600)
+    _place(canvas, src, transparent, (size - src.width) // 2, (size - src.height) // 2 - (10 if transparent else 0))
     return _to_file(canvas, f"{key}.jpg")
 
 
@@ -88,16 +118,14 @@ def course_cover(brand, product_key, seed):
         d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 255, 255, 60))
     img = Image.alpha_composite(img, layer)
     if product_key:
-        prod = Image.open(ASSETS / f"prod-{product_key}.jpg").convert("RGBA")
-        prod = _fit(prod, 520, 500)
-        mask = Image.new("L", prod.size, 0)
-        ImageDraw.Draw(mask).rounded_rectangle((0, 0, prod.width, prod.height), radius=28, fill=255)
-        shadow = Image.new("RGBA", (prod.width + 80, prod.height + 80), (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).rounded_rectangle((40, 50, prod.width + 40, prod.height + 50), radius=28, fill=(0, 0, 0, 150))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(22))
-        px, py = w - prod.width - 110, (h - prod.height) // 2 - 20
-        img.alpha_composite(shadow, (px - 40, py - 40))
-        img.paste(prod, (px, py), mask)
+        prod, transparent = _asset(product_key)
+        prod = _fit(prod, 640, 520) if transparent else _fit(prod, 520, 500)
+        px, py = w - prod.width - (80 if transparent else 110), (h - prod.height) // 2 - 20
+        _place(img, prod, transparent, px, py)
+        # Logo de la marca a la izquierda (las esquinas las usan las etiquetas de la tarjeta).
+        logo = Image.open(BRAND_LOGOS[brand]).convert("RGBA")
+        logo.thumbnail((360, 250))
+        img.alpha_composite(logo, (90, (h - logo.height) // 2 - 30))
     else:
         mark = Image.open(LOGO_MARK).convert("RGBA")
         mark.thumbnail((330, 480))

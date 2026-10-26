@@ -16,12 +16,13 @@
         </div>
       </div>
     </div>
-    <div class="hero-art" aria-hidden="true"><img src="{% static 'img/banner-latina.jpeg' %}" alt=""></div>
+    <div class="hero-art"><img src="{% static 'img/banner-portada.jpg' %}" alt="Industrial Latina: más que pinturas, soluciones para un mejor mañana"></div>
   </section>
 
-  <div class="grid-4 mt-3">
-    <div class="stat-card"><div class="stat-icon navy">{% icon "book-open" 22 %}</div><div><div class="stat-value">{{ in_progress|length }}</div><div class="stat-label">En curso</div></div></div>
-    <div class="stat-card"><div class="stat-icon green">{% icon "circle-check-big" 22 %}</div><div><div class="stat-value">{{ completed_count }}</div><div class="stat-label">Completados</div></div></div>
+  <div class="stat-row mt-3">
+    <a class="stat-card" href="{% url 'courses:explore' %}" style="text-decoration:none"><div class="stat-icon navy">{% icon "library" 22 %}</div><div><div class="stat-value">{{ courses_total }}</div><div class="stat-label">Cursos disponibles</div></div></a>
+    <a class="stat-card" href="{% url 'courses:my_learning' %}" style="text-decoration:none"><div class="stat-icon navy">{% icon "book-open" 22 %}</div><div><div class="stat-value">{{ in_progress|length }}</div><div class="stat-label">En curso</div></div></a>
+    <a class="stat-card" href="{% url 'courses:my_learning' %}?tab=completados" style="text-decoration:none"><div class="stat-icon green">{% icon "circle-check-big" 22 %}</div><div><div class="stat-value">{{ completed_count }}</div><div class="stat-label">Completados</div></div></a>
     <a class="stat-card" href="{% url 'certificates:list' %}" style="text-decoration:none"><div class="stat-icon gold">{% icon "award" 22 %}</div><div><div class="stat-value">{{ my_stats.certs }}</div><div class="stat-label">Certificados</div></div></a>
     <a class="stat-card" href="{% url 'core:ranking' %}" style="text-decoration:none"><div class="stat-icon red">{% icon "trophy" 22 %}</div><div><div class="stat-value">{% if my_rank %}#{{ my_rank }}{% else %}—{% endif %}</div><div class="stat-label">Ranking {% if ranking_total %}de {{ ranking_total }}{% endif %}</div></div></a>
   </div>

@@ -71,12 +71,14 @@ def render_certificate(certificate, verify_url):
 
     # Marca de agua
     wm = 330
-    c.drawImage(_watermark(), (width - wm * 0.68) / 2, (height - wm) / 2 - 10, wm * 0.68, wm, mask="auto")
+    mark = _watermark()
+    mw, mh = mark.getSize()
+    c.drawImage(mark, (width - wm * mw / mh) / 2, (height - wm) / 2 - 10, wm * mw / mh, wm, mask="auto")
 
     # Logo y código
-    logo = ImageReader(str(IMG_DIR / "logo-latina.png"))
+    logo = ImageReader(str(IMG_DIR / "logo-latina-fondo.png"))
     lw, lh = logo.getSize()
-    logo_h = 54
+    logo_h = 76
     c.drawImage(logo, 56, height - 56 - logo_h, logo_h * lw / lh, logo_h, mask="auto")
     c.setFont("Helvetica", 8.5)
     c.setFillColor(MUTED)

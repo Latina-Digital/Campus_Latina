@@ -65,6 +65,7 @@ def home(request):
         "recommended": recommended,
         "progress": progress,
         "completed_count": sum(1 for e in enrollments if e.completed_at),
+        "courses_total": published.count(),
         "paths": path_progress(user, LearningPath.objects.filter(is_published=True).prefetch_related("steps__course")[:3]),
         "announcements": Announcement.objects.filter(is_active=True)[:3],
         "categories": Category.objects.annotate(n=Count("courses", filter=Q(courses__is_published=True))).filter(n__gt=0),

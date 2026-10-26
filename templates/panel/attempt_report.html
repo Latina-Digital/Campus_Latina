@@ -9,7 +9,7 @@
     body { background: #EEF1F6; color: #1F2937; }
     .report-sheet { margin: 24px auto; box-shadow: 0 10px 30px rgba(0,0,0,.12); border-top: 8px solid #0A1C40; }
     .report-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0A1C40; padding-bottom: 16px; margin-bottom: 22px; }
-    .report-head img { height: 58px; }
+    .report-head img { height: 80px; }
     .report-sheet h1 { color: #0A1C40; font-size: 22px; margin: 0; }
     .kvbox { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 30px; background: #F4F6FA; border-left: 5px solid #0A1C40; padding: 16px 20px; border-radius: 8px; font-size: 14px; }
     .kvbox span { color: #6B7280; }
@@ -28,7 +28,7 @@
   <div class="tools"><button class="btn btn-navy" onclick="window.print()">Imprimir / Guardar PDF</button></div>
   <div class="report-sheet">
     <div class="report-head">
-      <img src="{% static 'img/logo-latina.png' %}" alt="{{ CAMPUS_COMPANY }}">
+      <img src="{% static 'img/logo-latina-fondo.png' %}" alt="{{ CAMPUS_COMPANY }}">
       <div style="text-align:right"><h1>INFORME DE EVALUACIÓN</h1><small style="color:#6B7280">Generado el {{ printed_at|date:"d/m/Y H:i" }}</small></div>
     </div>
     <div class="kvbox">

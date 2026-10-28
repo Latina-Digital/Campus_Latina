@@ -182,8 +182,11 @@ CAMPUS_API_URL = env("CAMPUS_API_URL", "")
 CAMPUS_API_URLS = env_list("CAMPUS_API_URLS", "")
 CAMPUS_API_KEY = env("CAMPUS_API_KEY", "") or SYSPRO_API_KEY
 CAMPUS_API_TIMEOUT = int(env("CAMPUS_API_TIMEOUT", "20"))
-# Cada cuántos segundos se vuelve a leer la API (0 = solo al arrancar).
-CAMPUS_API_REFRESH_SECONDS = int(env("CAMPUS_API_REFRESH_SECONDS", "60"))
+# Cada cuántos segundos se vuelve a leer la API (0 = solo al arrancar). Si nada cambió,
+# la copia local no se toca.
+CAMPUS_API_REFRESH_SECONDS = int(env("CAMPUS_API_REFRESH_SECONDS", "15"))
+# Cada cuántos segundos las páginas abiertas preguntan si hay cambios (0 = nunca).
+CAMPUS_LIVE_SECONDS = int(env("CAMPUS_LIVE_SECONDS", "10"))
 if sys.argv[1:2] == ["test"]:
     # Las pruebas nunca escriben en la API real.
     CAMPUS_API_URL, CAMPUS_API_URLS = "", []

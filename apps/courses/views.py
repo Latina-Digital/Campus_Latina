@@ -122,7 +122,7 @@ def explore(request):
 def course_detail(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
     user = request.user
-    if course.is_locked_for(user):
+    if course.coming_soon:
         messages.info(request, "Este curso estará disponible próximamente.")
         return redirect("courses:explore")
     modules = course.modules.prefetch_related("lessons")
@@ -161,7 +161,7 @@ def course_detail(request, slug):
 @require_POST
 def course_start(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
-    if course.is_locked_for(request.user):
+    if course.coming_soon:
         messages.info(request, "Este curso estará disponible próximamente.")
         return redirect("courses:explore")
     enrollment = enroll(request.user, course)
@@ -178,7 +178,7 @@ def course_start(request, slug):
 @login_required
 def lesson_view(request, slug, lesson_id):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
-    if course.is_locked_for(request.user):
+    if course.coming_soon:
         messages.info(request, "Este curso estará disponible próximamente.")
         return redirect("courses:explore")
     lesson = get_object_or_404(Lesson.objects.select_related("module"), pk=lesson_id, module__course=course)
@@ -216,7 +216,7 @@ def _json_body(request):
 def lesson_complete(request, lesson_id):
     lesson = get_object_or_404(Lesson.objects.select_related("module__course"), pk=lesson_id)
     course = lesson.module.course
-    if course.is_locked_for(request.user):
+    if course.coming_soon:
         return JsonResponse({"ok": False}, status=403)
     complete_lesson(request.user, lesson)
     progress = course_progress(request.user, course)

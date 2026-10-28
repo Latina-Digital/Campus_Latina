@@ -7,10 +7,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import SuspiciousFileOperation
 from django.db.models import Count
-from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils._os import safe_join
 
+from apps.apidata import live
 from apps.catalog.models import Product
 from apps.certificates.models import Certificate
 from apps.courses.models import Category, Course, Lesson
@@ -50,6 +51,13 @@ def ranking(request):
         "points_cert": POINTS_CERTIFICATE,
     }
     return render(request, "core/ranking.html", context)
+
+
+def live_state(request):
+    """Versión de los datos: las páginas abiertas la consultan para actualizarse solas (ver apidata/live.py)."""
+    response = JsonResponse({"v": live.version()})
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def serve_media(request, path):

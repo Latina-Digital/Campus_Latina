@@ -1,9 +1,10 @@
 ﻿<#
   Actualización automática del campus desde GitHub.
 
-  Revisa si hay commits nuevos en GitHub y, solo si los hay, ejecuta
-  actualizar.ps1 (respaldo, git pull, migraciones, archivos estáticos y
-  reinicio del sitio). Si no hay cambios no hace nada.
+  Revisa si hay commits nuevos en GitHub, o código ya descargado con el que
+  el sitio todavía no se reinició, y solo entonces ejecuta actualizar.ps1
+  (respaldo, git pull, migraciones, archivos estáticos y reinicio del sitio).
+  Si no hay nada nuevo no hace nada.
 
   Instalar UNA VEZ en el servidor (PowerShell como Administrador):
     powershell -ExecutionPolicy Bypass -File .\deploy\auto_actualizar.ps1 -Instalar
@@ -42,13 +43,18 @@ function Anotar($texto) { Add-Content -Path $log -Value "$(Get-Date -Format 'yyy
 
 git fetch --quiet origin
 if ($LASTEXITCODE -ne 0) { Anotar "No se pudo conectar con GitHub."; exit 1 }
-$local = (git rev-parse HEAD).Trim()
 $remoto = (git rev-parse "@{u}").Trim()
-if ($local -eq $remoto) { exit 0 }
+# Versión con la que se reinició el sitio la última vez. Si alguien hizo git pull
+# a mano sin reiniciar, el código en disco es nuevo pero el sitio sigue con el viejo.
+$marca = Join-Path $AppDir "logs\version_publicada.txt"
+$publicada = if (Test-Path $marca) { (Get-Content $marca -Raw).Trim() } else { "" }
+if ($publicada -eq $remoto) { exit 0 }
 
-Anotar "Cambios nuevos ($($local.Substring(0,7)) -> $($remoto.Substring(0,7))). Actualizando..."
+Anotar "Versión nueva: $($remoto.Substring(0,7)) (publicada: $(if ($publicada) { $publicada.Substring(0,7) } else { 'ninguna' })). Actualizando..."
 try {
     & (Join-Path $PSScriptRoot "actualizar.ps1") -NombreSitio $NombreSitio *>> $log
+    if ($LASTEXITCODE) { throw "actualizar.ps1 terminó con código $LASTEXITCODE" }
+    Set-Content -Path $marca -Value (git rev-parse HEAD).Trim() -Encoding ascii
     Anotar "Actualizado a $((git rev-parse --short HEAD).Trim())."
 } catch {
     Anotar "Falló la actualización: $_"

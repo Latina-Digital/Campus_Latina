@@ -33,7 +33,7 @@ def _own_attempt(request, pk):
 @login_required
 def intro(request, slug):
     course, quiz = _course_with_quiz(request, slug)
-    if course.is_locked_for(request.user):
+    if course.coming_soon:
         messages.info(request, "Este curso estará disponible próximamente.")
         return redirect("courses:explore")
     progress = course_progress(request.user, course)

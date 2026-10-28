@@ -10,6 +10,8 @@ Los usuarios no están en la API: se reconstruyen a partir de los registros que
 los mencionan (inscripciones, intentos, certificados...), con el nombre, rol y
 supervisor copiados de Syspro.
 """
+import hashlib
+import json
 import logging
 import time
 
@@ -20,7 +22,7 @@ from django.db import DEFAULT_DB_ALIAS, transaction
 
 from apps.accounts.backends import split_name
 
-from . import client
+from . import client, live
 from .registry import M2M, TABLAS, from_api, is_user_fk, set_missing_columns
 from .sync import paused
 
@@ -28,6 +30,12 @@ logger = logging.getLogger("apps.apidata")
 
 # Momento (time.monotonic) de la última carga; lo usa middleware.py para recargar.
 ultima_carga = 0.0
+# Huellas (de todos los datos, de los que se ven en las páginas) de la última carga.
+_huellas = None
+
+
+def _huella(datos):
+    return hashlib.sha1(json.dumps(datos, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def prepare():
@@ -39,13 +47,18 @@ def prepare():
     load_all()
 
 
-def load_all():
-    global ultima_carga
+def load_all(solo_si_cambio=False):
+    """Recarga la copia local. Con solo_si_cambio, no la toca si la API tiene lo mismo que la vez anterior."""
+    global ultima_carga, _huellas
     inicio = time.monotonic()
     # Primero se descarga todo; así la base local queda bloqueada el menor tiempo posible.
     datos = {tabla: client.call("CONSULTAR", tabla) for _label, tabla in TABLAS}
     for _field, tabla, _col in M2M:
         datos[tabla] = client.call("CONSULTAR", tabla)
+    huellas = (_huella(datos), _huella({tabla: datos[tabla] for tabla in live.tablas()}))
+    if solo_si_cambio and _huellas and huellas[0] == _huellas[0]:
+        ultima_carga = time.monotonic()
+        return 0
     for label, tabla in TABLAS:
         if datos[tabla]:
             columnas = {f.column for f in apps.get_model(label)._meta.concrete_fields if not f.primary_key and not is_user_fk(f)}
@@ -67,6 +80,9 @@ def load_all():
             model._base_manager.bulk_create(objs, batch_size=500)
             cargados[model] = {obj.pk for obj in objs}
         _load_m2m(datos, usuarios, cargados)
+    if _huellas and huellas[1] != _huellas[1]:
+        live.bump()  # algo visible cambió (quizá desde otro campus): las páginas abiertas se actualizan
+    _huellas = huellas
     ultima_carga = time.monotonic()
     total = sum(len(filas) for filas in datos.values())
     logger.info("Datos del campus cargados desde la API: %s registros en %.1f s.", total, time.monotonic() - inicio)

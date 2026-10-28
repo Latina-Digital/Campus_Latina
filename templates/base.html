@@ -6,6 +6,8 @@
   <title>{% block title %}Inicio{% endblock %} · {{ CAMPUS_NAME }}</title>
   <meta name="description" content="{% block description %}Plataforma de formación de Industrial Latina e Induless: cursos, evaluaciones y certificados sobre nuestros productos.{% endblock %}">
   <meta name="theme-color" content="#0A1C40">
+  {# Versión de los datos: campus.js la consulta para actualizar la página sola si algo cambia. #}
+  <meta name="campus-live" content="{{ LIVE_VERSION }}" data-url="{% url 'core:live_state' %}" data-seconds="{{ CAMPUS_LIVE_SECONDS }}">
   {# ?v= obliga al navegador a dejar el ícono anterior guardado en caché #}
   <link rel="icon" href="{% static 'img/favicon.ico' %}?v=3" sizes="16x16 32x32 48x48">
   <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}?v=3" sizes="32x32">
@@ -23,7 +25,7 @@
   <script defer src="{% static 'js/campus.js' %}"></script>
   <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
 </head>
-<body class="{% block body_class %}{% endblock %}" {% block body_attrs %}{% endblock %}>
+<body class="{% block body_class %}{% endblock %}" data-live="{% block live %}on{% endblock %}" {% block body_attrs %}{% endblock %}>
   <a class="sr-only" href="#contenido">Saltar al contenido</a>
   {% block topbar %}{% include "partials/topbar.html" %}{% endblock %}
   <main id="contenido">{% block content %}{% endblock %}</main>

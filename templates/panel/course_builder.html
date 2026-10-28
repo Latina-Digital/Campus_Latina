@@ -10,7 +10,8 @@
     <p>{{ course.summary }}</p>
   </div>
   <div class="toolbar">
-    <a class="btn" href="{{ course.get_absolute_url }}" target="_blank">{% icon "eye" 16 %} Vista previa</a>
+    {% if course.coming_soon %}<button class="btn" type="button" disabled title="Habilita el curso para verlo como estudiante">{% icon "eye-off" 16 %} Vista previa</button>
+    {% else %}<a class="btn" href="{{ course.get_absolute_url }}" target="_blank">{% icon "eye" 16 %} Vista previa</a>{% endif %}
     <a class="btn" href="{% url 'panel:course_edit' course.pk %}">{% icon "pencil" 16 %} Datos del curso</a>
     <form method="post">{% csrf_token %}<button class="btn {% if course.is_published %}btn-ghost{% else %}btn-primary{% endif %}" name="action" value="toggle_publish">{% if course.is_published %}{% icon "eye-off" 16 %} Pasar a borrador{% else %}{% icon "send" 16 %} Publicar curso{% endif %}</button></form>
     <form method="post">{% csrf_token %}<button class="btn {% if course.coming_soon %}btn-primary{% else %}btn-ghost{% endif %}" name="action" value="toggle_coming_soon">{% if course.coming_soon %}{% icon "unlock" 16 %} Habilitar curso{% else %}{% icon "hourglass" 16 %} Marcar Próximamente{% endif %}</button></form>

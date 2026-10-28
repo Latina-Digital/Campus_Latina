@@ -22,7 +22,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 
-from . import client
+from . import client, live
 from .client import CampusApiError
 from .mirror import load_all
 from .registry import EXTRAS, M2M, TABLAS, api_has_column, is_user_fk, set_missing_columns
@@ -291,19 +291,47 @@ class ApiSyncTests(TransactionTestCase):
         from . import middleware, mirror
 
         call_command("seed_campus", stdout=io.StringIO())
+        load_all()
         course = Course.objects.first()
         # Otro campus cambia el título directamente en la API.
         self.api.rows["Cursos"][course.pk]["title"] = "Cambiado en otro campus"
-        with override_settings(CAMPUS_API_URL="http://api", CAMPUS_API_REFRESH_SECONDS=60):
-            mirror.ultima_carga = time.monotonic()
-            middleware.refresh_if_stale()  # copia reciente: no recarga
-            self.assertNotEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
+        version = live.version()
+
+        def recargar():
             mirror.ultima_carga -= 61
             middleware.refresh_if_stale()
             for hilo in threading.enumerate():
                 if hilo.name == "recarga-api":
                     hilo.join()
-        self.assertEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
+
+        with override_settings(CAMPUS_API_URL="http://api", CAMPUS_API_REFRESH_SECONDS=60):
+            mirror.ultima_carga = time.monotonic()
+            middleware.refresh_if_stale()  # copia reciente: no recarga
+            self.assertNotEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
+            recargar()
+            self.assertEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
+            # Las páginas abiertas se enteran del cambio.
+            self.assertNotEqual(live.version(), version)
+            # Si la API no cambió, la copia local no se toca.
+            version = live.version()
+            with mock.patch.object(mirror, "_build", side_effect=AssertionError("no debía recargar")):
+                recargar()
+            self.assertEqual(live.version(), version)
+
+    def test_live_version_changes_only_with_visible_data(self):
+        from apps.courses.models import Course, Lesson, LessonProgress
+
+        call_command("seed_campus", stdout=io.StringIO())
+        learner = User.objects.create(username="TESTER", first_name="Ana")
+        version = live.version()
+        LessonProgress.objects.create(user=learner, lesson=Lesson.objects.first(), position_seconds=12)
+        self.assertEqual(live.version(), version)  # avanzar un video no refresca a nadie
+        course = Course.objects.first()
+        course.title = "Nuevo título"
+        course.save()
+        self.assertNotEqual(live.version(), version)
+        self.client.force_login(learner)
+        self.assertEqual(self.client.get(reverse("core:live_state")).json(), {"v": live.version()})
 
     def test_api_error_cancels_the_local_change(self):
         from apps.core.models import Announcement

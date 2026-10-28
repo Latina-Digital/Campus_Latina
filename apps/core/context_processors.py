@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.utils.functional import SimpleLazyObject
 
+from apps.apidata import live
+
 from .gamification import level_info, user_points
 
 
@@ -10,6 +12,8 @@ def campus(request):
         "CAMPUS_COMPANY": settings.CAMPUS_COMPANY,
         "CAMPUS_SIGNER_1": settings.CAMPUS_SIGNER_1,
         "CAMPUS_SIGNER_2": settings.CAMPUS_SIGNER_2,
+        "CAMPUS_LIVE_SECONDS": settings.CAMPUS_LIVE_SECONDS,
+        "LIVE_VERSION": live.version(),
     }
     user = getattr(request, "user", None)
     if user and user.is_authenticated:

@@ -224,9 +224,65 @@
     });
   });
 
+  // ---------- Actualización en tiempo real ----------
+  // Cada pocos segundos pregunta al servidor la versión de los datos (apps/apidata/live.py).
+  // Si cambió, vuelve a pedir la página y reemplaza el contenido sin recargar ni mover el scroll.
+  // Espera mientras la persona escribe o ve un video, y no actúa en páginas con data-live="off"
+  // (lección, examen y panel).
+  function liveUpdates() {
+    const meta = document.querySelector('meta[name="campus-live"]');
+    const seconds = meta ? parseInt(meta.dataset.seconds, 10) : 0;
+    if (!seconds || document.body.dataset.live !== "on") return;
+    let version = meta.content;
+    let pending = false;
+    let checking = false;
+
+    function busy() {
+      const el = document.activeElement;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return true;
+      return Array.prototype.some.call(document.querySelectorAll("video"), function (v) { return !v.paused; });
+    }
+
+    function refresh() {
+      if (busy()) { pending = true; return; }
+      pending = false;
+      return fetch(window.location.href, { credentials: "same-origin", cache: "no-store" })
+        .then(function (r) {
+          // Por ejemplo, el curso que se estaba viendo pasó a "Próximamente".
+          if (r.redirected) { window.location = r.url; return null; }
+          return r.ok ? r.text() : null;
+        })
+        .then(function (html) {
+          if (!html) return;
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const main = doc.querySelector("main");
+          if (!main || doc.body.dataset.live !== "on") return;
+          document.querySelector("main").replaceWith(main);
+          icons();
+        });
+    }
+
+    function check() {
+      if (document.hidden || checking) return;
+      checking = true;
+      fetch(meta.dataset.url, { credentials: "same-origin", cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (data && data.v !== version) { version = data.v; return refresh(); }
+          if (pending) return refresh();
+        })
+        .catch(function () { /* sin conexión: se reintenta en la siguiente vuelta */ })
+        .finally(function () { checking = false; });
+    }
+
+    setInterval(check, seconds * 1000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+  }
+
   // ---------- Al cargar ----------
   document.addEventListener("DOMContentLoaded", function () {
     icons();
+    liveUpdates();
     document.querySelectorAll(".toast").forEach(function (el, i) {
       setTimeout(function () { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(function () { el.remove(); }, 400); }, 5000 + i * 600);
     });

@@ -30,7 +30,7 @@ def refresh_if_stale():
 
 def _recargar():
     try:
-        mirror.load_all()
+        mirror.load_all(solo_si_cambio=True)
     except Exception:
         # Se reintenta en el siguiente intervalo; mientras tanto sigue la copia anterior.
         mirror.ultima_carga = time.monotonic()

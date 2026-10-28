@@ -1,6 +1,6 @@
 {% with p=progress|get_item:course.pk %}
-{# Un curso "próximamente" no se puede abrir: la tarjeta no es enlace (salvo para gestores). #}
-{% if course.coming_soon and not user.is_staff %}<div class="course-card soon" aria-disabled="true" title="Disponible próximamente">{% else %}<a class="course-card{% if course.coming_soon %} soon{% endif %}" href="{{ course.get_absolute_url }}">{% endif %}
+{# Un curso "próximamente" no se puede abrir: la tarjeta no es un enlace. #}
+{% if course.coming_soon %}<div class="course-card soon" aria-disabled="true" title="Disponible próximamente">{% else %}<a class="course-card" href="{{ course.get_absolute_url }}">{% endif %}
   <div class="course-cover">
     {% if course.cover %}<img src="{{ course.cover.url }}" alt="" loading="lazy">{% else %}<div class="cover-fallback">{% icon course.category.icon|default:"book-open" 46 %}</div>{% endif %}
     {% brand_badge course.brand %}
@@ -27,5 +27,5 @@
       </div>
     {% endif %}
   </div>
-{% if course.coming_soon and not user.is_staff %}</div>{% else %}</a>{% endif %}
+{% if course.coming_soon %}</div>{% else %}</a>{% endif %}
 {% endwith %}

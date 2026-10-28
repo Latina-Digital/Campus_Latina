@@ -70,10 +70,6 @@ class Course(models.Model):
     def get_absolute_url(self):
         return reverse("courses:detail", args=[self.slug])
 
-    def is_locked_for(self, user):
-        """Los cursos "próximamente" solo los pueden abrir los gestores, para prepararlos."""
-        return self.coming_soon and not user.is_staff
-
     @property
     def lessons(self):
         return Lesson.objects.filter(module__course=self).order_by("module__order", "module_id", "order", "id")

@@ -117,6 +117,9 @@ class CampusFlowTests(TestCase):
         self.assertRedirects(self.client.post(reverse("courses:start", args=[course.slug])), reverse("courses:explore"))
         self.assertEqual(self.client.post(reverse("courses:lesson_complete", args=[lesson.pk])).status_code, 403)
         self.assertFalse(course.enrollments.filter(user=self.learner).exists())
+        # Tampoco los gestores: lo preparan desde el Panel.
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
 
     def test_panel_toggles_coming_soon(self):
         course = Course.objects.filter(is_published=True).first()

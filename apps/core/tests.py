@@ -1,4 +1,5 @@
 import io
+import re
 import shutil
 import tempfile
 
@@ -33,6 +34,14 @@ class CampusFlowTests(TestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200, url)
             self.assertIn("no-cache", response["Cache-Control"], url)
+
+    def test_static_files_are_served_without_collectstatic(self):
+        page = self.client.get(reverse("core:landing")).content.decode()
+        css = re.search(r'href="(/static/css/campus\.css\?v=\w+)"', page)
+        self.assertIsNotNone(css, "el CSS debe enlazarse con su versión")
+        response = self.client.get(css[1])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b".course-card.soon", b"".join(response.streaming_content))
         self.assertRedirects(self.client.get(reverse("courses:home")), reverse("accounts:login") + "?next=" + reverse("courses:home"))
 
     def test_learner_pages(self):
@@ -125,11 +134,18 @@ class CampusFlowTests(TestCase):
         course = Course.objects.filter(is_published=True).first()
         self.client.force_login(self.admin)
         builder = reverse("panel:course_builder", args=[course.pk])
+        toggle = reverse("panel:course_coming_soon", args=[course.pk])
         self.assertContains(self.client.get(builder), "Marcar Próximamente")
-        self.client.post(builder, {"action": "toggle_coming_soon"})
+        # Desde la lista de cursos (todos los cursos tienen el botón) vuelve a la lista.
+        lista = reverse("panel:course_list")
+        html = self.client.get(lista).content.decode()
+        for pk in Course.objects.values_list("pk", flat=True):
+            self.assertIn(reverse("panel:course_coming_soon", args=[pk]), html)
+        self.assertRedirects(self.client.post(toggle, {"next": lista}), lista)
         course.refresh_from_db()
         self.assertTrue(course.coming_soon)
-        self.client.post(builder, {"action": "toggle_coming_soon"})
+        # Desde el contenido del curso vuelve al curso; un "next" externo se ignora.
+        self.assertRedirects(self.client.post(toggle, {"next": "https://otro-sitio.com/"}), builder)
         course.refresh_from_db()
         self.assertFalse(course.coming_soon)
 

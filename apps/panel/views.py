@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -365,22 +366,6 @@ def course_builder(request, pk):
             course.save(update_fields=["is_published", "updated_at"])
             messages.success(request, "Curso publicado." if course.is_published else "Curso pasado a borrador.")
             return redirect("panel:course_builder", pk=pk)
-        elif action == "toggle_coming_soon":
-            if not api_has_column(Course, "coming_soon"):
-                messages.error(
-                    request,
-                    "La base de datos aún no tiene la opción Próximamente. Ejecuta deploy/api_campus/03_proximamente.sql "
-                    "en SQL Server y reinicia el campus.",
-                )
-                return redirect("panel:course_builder", pk=pk)
-            course.coming_soon = not course.coming_soon
-            course.save(update_fields=["coming_soon", "updated_at"])
-            messages.success(
-                request,
-                "Curso marcado como Próximamente: se ve en el catálogo, pero nadie puede tomarlo."
-                if course.coming_soon else "Curso habilitado: ya se puede tomar.",
-            )
-            return redirect("panel:course_builder", pk=pk)
     context = {
         "section": "courses",
         "course": course,
@@ -464,6 +449,31 @@ def reorder(request, kind, pk):
                     item.save(update_fields=["order"])
     course_pk = obj.course_id if kind == "module" else obj.module.course_id
     return redirect(reverse("panel:course_builder", args=[course_pk]) + f"#{kind}-{pk}")
+
+
+@staff_required
+@require_POST
+def course_coming_soon(request, pk):
+    """Marca o quita "Próximamente" (desde la lista de cursos o desde el contenido del curso)."""
+    course = get_object_or_404(Course, pk=pk)
+    siguiente = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(siguiente, allowed_hosts={request.get_host()}):
+        siguiente = reverse("panel:course_builder", args=[pk])
+    if not api_has_column(Course, "coming_soon"):
+        messages.error(
+            request,
+            "La base de datos aún no tiene la opción Próximamente. Ejecuta deploy/api_campus/03_proximamente.sql "
+            "en SQL Server y reinicia el campus.",
+        )
+        return redirect(siguiente)
+    course.coming_soon = not course.coming_soon
+    course.save(update_fields=["coming_soon", "updated_at"])
+    messages.success(
+        request,
+        f"«{course.title}» marcado como Próximamente: se ve en el catálogo, pero nadie puede tomarlo."
+        if course.coming_soon else f"«{course.title}» habilitado: ya se puede tomar.",
+    )
+    return redirect(siguiente)
 
 
 @staff_required

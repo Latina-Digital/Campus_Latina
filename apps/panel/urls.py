@@ -31,6 +31,7 @@ urlpatterns = [
     path("modulos/<int:pk>/", views.module_edit, name="module_edit"),
     path("ordenar/<str:kind>/<int:pk>/", views.reorder, name="reorder"),
     path("materiales/<int:pk>/eliminar/", views.resource_delete, name="resource_delete"),
+    path("cursos/<int:pk>/proximamente/", views.course_coming_soon, name="course_coming_soon"),
     path("preguntas/<int:pk>/", views.question_edit, name="question_edit"),
     path("preguntas/plantilla.csv", views.question_template, name="question_template"),
     # Rutas

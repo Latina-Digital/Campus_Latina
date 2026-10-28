@@ -128,14 +128,13 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": (
-            "django.contrib.staticfiles.storage.StaticFilesStorage"
-            if DEBUG
-            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-        )
-    },
+    # Los archivos se sirven directo desde static/ (ver apps/core/storage.py): no hace
+    # falta ejecutar collectstatic para que un cambio de estilos llegue al sitio.
+    "staticfiles": {"BACKEND": "apps.core.storage.VersionedStaticFilesStorage"},
 }
+WHITENOISE_USE_FINDERS = True
+# Cada enlace lleva ?v=<huella>: el navegador puede guardar los archivos un año.
+WHITENOISE_MAX_AGE = 365 * 24 * 3600
 # Sirve /media/ desde Django (con soporte de rangos para videos). Desactivar si un
 # servidor web (IIS, Nginx) se encarga de los archivos subidos.
 SERVE_MEDIA = env_bool("SERVE_MEDIA", True)

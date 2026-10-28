@@ -30,7 +30,9 @@ class CampusFlowTests(TestCase):
 
     def test_public_pages(self):
         for url in [reverse("core:landing"), reverse("accounts:login"), reverse("certificates:verify")]:
-            self.assertEqual(self.client.get(url).status_code, 200, url)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertIn("no-cache", response["Cache-Control"], url)
         self.assertRedirects(self.client.get(reverse("courses:home")), reverse("accounts:login") + "?next=" + reverse("courses:home"))
 
     def test_learner_pages(self):

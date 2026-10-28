@@ -59,6 +59,19 @@ EXTRAS = {
 
 _por_modelo = None
 
+# Columnas que el campus ya usa pero que la tabla de la API todavía no tiene (falta
+# ejecutar su script SQL). Se detectan al cargar los datos y, mientras falten, no se
+# envían: así el resto del campus sigue guardando normalmente.
+_faltantes = {}
+
+
+def set_missing_columns(tabla, columnas):
+    _faltantes[tabla] = set(columnas)
+
+
+def api_has_column(model, column):
+    return column not in _faltantes.get(table_for(model), ())
+
 
 def table_for(model):
     global _por_modelo
@@ -110,6 +123,8 @@ def row_for(instance, adding, fields=None):
         if field.primary_key:
             continue
         if fields is not None and field.name not in fields and field.attname not in fields:
+            continue
+        if not api_has_column(type(instance), field.column):
             continue
         if is_user_fk(field):
             datos["username"] = getattr(instance, field.name).username

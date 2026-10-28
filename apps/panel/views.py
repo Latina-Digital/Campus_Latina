@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from apps.accounts.models import User
+from apps.apidata.registry import api_has_column
 from apps.assessments.models import Attempt, Choice, Question, Quiz
 from apps.assessments.services import attempt_questions
 from apps.catalog.models import Product, ProductLine
@@ -365,6 +366,13 @@ def course_builder(request, pk):
             messages.success(request, "Curso publicado." if course.is_published else "Curso pasado a borrador.")
             return redirect("panel:course_builder", pk=pk)
         elif action == "toggle_coming_soon":
+            if not api_has_column(Course, "coming_soon"):
+                messages.error(
+                    request,
+                    "La base de datos aún no tiene la opción Próximamente. Ejecuta deploy/api_campus/03_proximamente.sql "
+                    "en SQL Server y reinicia el campus.",
+                )
+                return redirect("panel:course_builder", pk=pk)
             course.coming_soon = not course.coming_soon
             course.save(update_fields=["coming_soon", "updated_at"])
             messages.success(

@@ -23,7 +23,7 @@ from apps.accounts.models import User
 from . import client
 from .client import CampusApiError
 from .mirror import load_all
-from .registry import EXTRAS, M2M, TABLAS, is_user_fk
+from .registry import EXTRAS, M2M, TABLAS, api_has_column, is_user_fk, set_missing_columns
 
 SQL_FILE = settings.BASE_DIR / "deploy" / "api_campus" / "01_campus_nuevo.sql"
 
@@ -266,6 +266,22 @@ class ApiSyncTests(TransactionTestCase):
         antes = snapshot()
         load_all()
         self.assertEqual(snapshot(), antes)
+
+    def test_column_missing_in_the_api_is_not_sent(self):
+        from apps.courses.models import Course
+
+        call_command("seed_campus", stdout=io.StringIO())
+        # Tabla de cursos de antes de ejecutar 03_proximamente.sql.
+        del self.api.schema["Cursos"]["cols"]["coming_soon"]
+        for fila in self.api.rows["Cursos"].values():
+            del fila["coming_soon"]
+        load_all()
+        self.addCleanup(set_missing_columns, "Cursos", [])
+        self.assertFalse(api_has_column(Course, "coming_soon"))
+        course = Course.objects.first()
+        course.title = "Título editado"
+        course.save()
+        self.assertEqual(self.api.rows["Cursos"][course.pk]["title"], "Título editado")
 
     def test_api_error_cancels_the_local_change(self):
         from apps.core.models import Announcement

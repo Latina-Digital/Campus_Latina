@@ -21,7 +21,7 @@ from django.db import DEFAULT_DB_ALIAS, transaction
 from apps.accounts.backends import split_name
 
 from . import client
-from .registry import M2M, TABLAS, from_api, is_user_fk
+from .registry import M2M, TABLAS, from_api, is_user_fk, set_missing_columns
 from .sync import paused
 
 logger = logging.getLogger("apps.apidata")
@@ -42,6 +42,13 @@ def load_all():
     datos = {tabla: client.call("CONSULTAR", tabla) for _label, tabla in TABLAS}
     for _field, tabla, _col in M2M:
         datos[tabla] = client.call("CONSULTAR", tabla)
+    for label, tabla in TABLAS:
+        if datos[tabla]:
+            columnas = {f.column for f in apps.get_model(label)._meta.concrete_fields if not f.primary_key and not is_user_fk(f)}
+            faltan = columnas - datos[tabla][0].keys()
+            set_missing_columns(tabla, faltan)
+            if faltan:
+                logger.warning("La tabla %s de la API no tiene las columnas %s: falta ejecutar su script SQL.", tabla, ", ".join(sorted(faltan)))
     with paused(), transaction.atomic():
         usuarios = _sync_users(datos)
         Course = apps.get_model("courses.Course")

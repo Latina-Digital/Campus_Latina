@@ -1,5 +1,6 @@
 from django import forms
 
+from apps.apidata.registry import api_has_column
 from apps.assessments.models import Quiz
 from apps.catalog.models import Product, ProductLine
 from apps.core.forms import StyledFormMixin
@@ -25,6 +26,13 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
             "outcomes": forms.Textarea(attrs={"rows": 5, "placeholder": "Identificar las diferencias entre…\nRecomendar el producto ideal para…"}),
             "related_products": forms.CheckboxSelectMultiple,
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not api_has_column(Course, "coming_soon"):
+            field = self.fields["coming_soon"]
+            field.disabled = True
+            field.help_text = "Se activa cuando se ejecute deploy/api_campus/03_proximamente.sql en SQL Server."
 
 
 class ModuleForm(StyledFormMixin, forms.ModelForm):

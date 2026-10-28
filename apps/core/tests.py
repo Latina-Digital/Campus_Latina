@@ -39,10 +39,10 @@ class CampusFlowTests(TestCase):
         lesson = course.lessons.first()
         urls = [
             reverse("courses:home"), reverse("courses:explore"), reverse("courses:explore") + "?q=duralin&marca=latina&orden=valorados",
-            reverse("courses:my_learning"), reverse("courses:my_learning") + "?tab=guardados", reverse("courses:paths"),
-            reverse("courses:path_detail", args=[course.path_steps.first().path.slug]), course.get_absolute_url(), lesson.get_absolute_url(),
+            reverse("courses:my_learning"), reverse("courses:my_learning") + "?tab=guardados",
+            course.path_steps.first().path.get_absolute_url(), course.get_absolute_url(), lesson.get_absolute_url(),
             reverse("assessments:intro", args=[course.slug]), reverse("catalog:list"), reverse("catalog:list") + "?marca=induless",
-            reverse("core:ranking"), reverse("core:ranking") + "?vista=equipos&periodo=mes", reverse("accounts:profile"),
+            reverse("core:ranking"), reverse("accounts:profile"),
             reverse("accounts:public_profile", args=["mcevallos"]), reverse("certificates:list"),
         ]
         for url in urls:
@@ -101,6 +101,32 @@ class CampusFlowTests(TestCase):
         attempt.refresh_from_db()
         self.assertFalse(attempt.passed)
         self.assertFalse(Certificate.objects.filter(user=self.learner, course=course).exists())
+
+    def test_coming_soon_course_cannot_be_taken(self):
+        course = Course.objects.filter(is_published=True).first()
+        Course.objects.filter(pk=course.pk).update(coming_soon=True)
+        lesson = course.lessons.first()
+        self.client.force_login(self.learner)
+        explore = self.client.get(reverse("courses:explore"))
+        self.assertContains(explore, "Próximamente")
+        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
+        for url in [course.get_absolute_url(), lesson.get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
+            self.assertRedirects(self.client.get(url), reverse("courses:explore"))
+        self.assertRedirects(self.client.post(reverse("courses:start", args=[course.slug])), reverse("courses:explore"))
+        self.assertEqual(self.client.post(reverse("courses:lesson_complete", args=[lesson.pk])).status_code, 403)
+        self.assertFalse(course.enrollments.filter(user=self.learner).exists())
+
+    def test_panel_toggles_coming_soon(self):
+        course = Course.objects.filter(is_published=True).first()
+        self.client.force_login(self.admin)
+        builder = reverse("panel:course_builder", args=[course.pk])
+        self.assertContains(self.client.get(builder), "Marcar Próximamente")
+        self.client.post(builder, {"action": "toggle_coming_soon"})
+        course.refresh_from_db()
+        self.assertTrue(course.coming_soon)
+        self.client.post(builder, {"action": "toggle_coming_soon"})
+        course.refresh_from_db()
+        self.assertFalse(course.coming_soon)
 
     def test_other_users_cannot_see_attempts_or_certificates(self):
         cert = Certificate.objects.exclude(user=self.learner).first()

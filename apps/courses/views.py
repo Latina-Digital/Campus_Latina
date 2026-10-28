@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.assessments.services import attempts_left, finished_attempts
@@ -40,7 +41,7 @@ def path_progress(user, paths):
             "courses": courses,
             "done": done,
             "percent": round(done * 100 / len(courses)) if courses else 0,
-            "next": next((c for c in courses if c.pk not in certified), None),
+            "next": next((c for c in courses if c.pk not in certified and not c.coming_soon), None),
         })
     return result
 
@@ -65,7 +66,7 @@ def home(request):
         "recommended": recommended,
         "progress": progress,
         "completed_count": sum(1 for e in enrollments if e.completed_at),
-        "courses_total": published.count(),
+        "courses_total": published.filter(coming_soon=False).count(),
         "paths": path_progress(user, LearningPath.objects.filter(is_published=True).prefetch_related("steps__course")[:3]),
         "announcements": Announcement.objects.filter(is_active=True)[:3],
         "categories": Category.objects.annotate(n=Count("courses", filter=Q(courses__is_published=True))).filter(n__gt=0),
@@ -121,6 +122,9 @@ def explore(request):
 def course_detail(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
     user = request.user
+    if course.is_locked_for(user):
+        messages.info(request, "Este curso estará disponible próximamente.")
+        return redirect("courses:explore")
     modules = course.modules.prefetch_related("lessons")
     progress = course_progress(user, course)
     reviews = course.reviews.select_related("user")
@@ -157,6 +161,9 @@ def course_detail(request, slug):
 @require_POST
 def course_start(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
+    if course.is_locked_for(request.user):
+        messages.info(request, "Este curso estará disponible próximamente.")
+        return redirect("courses:explore")
     enrollment = enroll(request.user, course)
     progress = course_progress(request.user, course)
     target = progress.next_lesson or enrollment.last_lesson or (progress.lessons[0] if progress.lessons else None)
@@ -171,6 +178,9 @@ def course_start(request, slug):
 @login_required
 def lesson_view(request, slug, lesson_id):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
+    if course.is_locked_for(request.user):
+        messages.info(request, "Este curso estará disponible próximamente.")
+        return redirect("courses:explore")
     lesson = get_object_or_404(Lesson.objects.select_related("module"), pk=lesson_id, module__course=course)
     enrollment = enroll(request.user, course)
     enrollment.last_lesson = lesson
@@ -205,8 +215,10 @@ def _json_body(request):
 @require_POST
 def lesson_complete(request, lesson_id):
     lesson = get_object_or_404(Lesson.objects.select_related("module__course"), pk=lesson_id)
-    complete_lesson(request.user, lesson)
     course = lesson.module.course
+    if course.is_locked_for(request.user):
+        return JsonResponse({"ok": False}, status=403)
+    complete_lesson(request.user, lesson)
     progress = course_progress(request.user, course)
     certificate = request.user.certificates.filter(course=course).first()
     return JsonResponse(
@@ -274,8 +286,11 @@ def review_submit(request, slug):
 
 @login_required
 def my_learning(request):
+    """Rutas de aprendizaje (con los cursos de la ruta elegida) y los cursos propios por estado."""
     tab = request.GET.get("tab", "en-curso")
     user = request.user
+    paths = path_progress(user, LearningPath.objects.filter(is_published=True).prefetch_related("steps__course"))
+    selected = next((p for p in paths if p["path"].slug == request.GET.get("ruta")), paths[0] if paths else None)
     enrollments = Enrollment.objects.filter(user=user, course__is_published=True).select_related("course", "course__category")
     if tab == "completados":
         courses = [e.course for e in enrollments.filter(completed_at__isnull=False)]
@@ -285,6 +300,9 @@ def my_learning(request):
         tab = "en-curso"
         courses = [e.course for e in enrollments.filter(completed_at__isnull=True)]
     context = {
+        "paths": paths,
+        "selected": selected,
+        "path_progress": progress_map(user, selected["courses"]) if selected else {},
         "tab": tab,
         "courses": courses,
         "progress": progress_map(user, courses),
@@ -298,21 +316,10 @@ def my_learning(request):
     return render(request, "courses/my_learning.html", context)
 
 
-@login_required
+# Las rutas se ven dentro de "Mi aprendizaje"; estas direcciones se mantienen por los enlaces ya compartidos.
 def paths(request):
-    items = path_progress(request.user, LearningPath.objects.filter(is_published=True).prefetch_related("steps__course"))
-    return render(request, "courses/paths.html", {"items": items})
+    return redirect(reverse("courses:my_learning") + "#rutas")
 
 
-@login_required
 def path_detail(request, slug):
-    path = get_object_or_404(LearningPath, slug=slug, is_published=True)
-    item = path_progress(request.user, [path])[0]
-    certified = set(request.user.certificates.values_list("course_id", flat=True))
-    context = {
-        "path": path,
-        "item": item,
-        "progress": progress_map(request.user, item["courses"]),
-        "certified": certified,
-    }
-    return render(request, "courses/path_detail.html", context)
+    return redirect(reverse("courses:my_learning") + f"?ruta={slug}#rutas")

@@ -95,39 +95,6 @@ def leaderboard(since=None, roles=None):
     return rows
 
 
-def team_leaderboard(since=None):
-    User = get_user_model()
-    members = User.objects.filter(is_active=True, is_superuser=False).exclude(supervisor="")
-    scores = _scores(since=since, user_ids=list(members.values_list("pk", flat=True)))
-    teams = defaultdict(lambda: {"members": 0, "points": 0, "certs": 0, "avgs": []})
-    for user in members:
-        key = user.supervisor.strip().upper()
-        s = scores.get(user.pk)
-        team = teams[key]
-        team["members"] += 1
-        if s:
-            team["points"] += s["points"]
-            team["certs"] += s["certs"]
-            if s["avg"] is not None:
-                team["avgs"].append(s["avg"])
-    rows = []
-    for name, t in teams.items():
-        if not t["points"]:
-            continue
-        rows.append(
-            {
-                "name": name.title(),
-                "members": t["members"],
-                "points": round(t["points"] / t["members"]),
-                "certs": t["certs"],
-                "avg": round(sum(t["avgs"]) / len(t["avgs"])) if t["avgs"] else None,
-            }
-        )
-    rows.sort(key=lambda r: (-r["points"], -(r["avg"] or 0)))
-    for i, row in enumerate(rows, start=1):
-        row["rank"] = i
-    return rows
-
 
 def user_badges(user, stats=None):
     from apps.assessments.models import Attempt

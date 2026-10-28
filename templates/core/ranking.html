@@ -6,24 +6,15 @@
     <div class="text-center"><div class="eyebrow" style="color:var(--gold-500)">{% icon "trophy" 14 %} Salón de la fama</div></div>
     <h1>Ranking del campus</h1>
     <p>Suma {{ points_lesson }} puntos por lección, tu mejor nota en cada evaluación aprobada y {{ points_cert }} puntos por certificado.</p>
-    <div class="rank-toggles">
-      <a class="chip {% if view != 'equipos' %}active{% endif %}" href="?vista=personas&periodo={{ period }}">{% icon "user-round" 15 %} Ejecutivos</a>
-      <a class="chip {% if view == 'equipos' %}active{% endif %}" href="?vista=equipos&periodo={{ period }}">{% icon "users-round" 15 %} Equipos por supervisor</a>
-    </div>
-    <div class="rank-toggles" style="margin-top:0">
-      <a class="chip {% if period == 'todo' %}active{% endif %}" href="?vista={{ view }}&periodo=todo">Histórico</a>
-      <a class="chip {% if period == 'mes' %}active{% endif %}" href="?vista={{ view }}&periodo=mes">Este mes</a>
-      <a class="chip {% if period == 'semana' %}active{% endif %}" href="?vista={{ view }}&periodo=semana">Últimos 7 días</a>
-    </div>
     {% if podium %}
     <div class="podium">
       {% for pos in "213" %}
         {% for row in podium %}{% if forloop.counter|stringformat:"s" == pos %}
         <div class="podium-step p{{ pos }}">
-          {% if view == 'equipos' %}<span class="avatar avatar-initials" style="width:76px;height:76px;font-size:26px">{{ row.name|slice:":1" }}</span>{% else %}{% avatar row.user 76 %}{% endif %}
+          {% avatar row.user 76 %}
           <div class="place">{% if pos == "1" %}🏆{% elif pos == "2" %}🥈{% else %}🥉{% endif %}</div>
-          <div class="who">{% if view == 'equipos' %}{{ row.name }}{% else %}{{ row.user.display_name }}{% endif %}</div>
-          <small style="opacity:.8">{% if view == 'equipos' %}{{ row.members }} integrantes{% else %}{{ row.level.name }}{% endif %}</small>
+          <div class="who">{{ row.user.display_name }}</div>
+          <small style="opacity:.8">{{ row.level.name }}</small>
           <div class="pts mt-1">{{ row.points }} pts</div>
         </div>
         {% endif %}{% endfor %}
@@ -35,10 +26,10 @@
 
 <div class="container" style="margin-top:-1px">
   {% if not podium %}
-  <div class="empty mt-3">{% icon "trophy" 48 %}<h3>Todavía no hay puntajes en este periodo</h3><p>Completa lecciones y aprueba evaluaciones para aparecer aquí.</p></div>
+  <div class="empty mt-3">{% icon "trophy" 48 %}<h3>Todavía no hay puntajes</h3><p>Completa lecciones y aprueba evaluaciones para aparecer aquí.</p></div>
   {% else %}
   <div class="card lb mt-3">
-    <div class="lb-row lb-head"><span class="text-center">#</span><span>{% if view == 'equipos' %}Equipo{% else %}Colaborador{% endif %}</span><span class="hide-sm">Certificados</span><span class="hide-sm">Promedio</span><span style="text-align:right">Puntos</span></div>
+    <div class="lb-row lb-head"><span class="text-center">#</span><span>Colaborador</span><span class="hide-sm">Certificados</span><span class="hide-sm">Promedio</span><span style="text-align:right">Puntos</span></div>
     {% for row in podium %}{% include "core/_rank_row.html" %}{% endfor %}
     {% for row in rows %}{% include "core/_rank_row.html" %}{% endfor %}
   </div>

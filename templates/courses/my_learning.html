@@ -5,14 +5,43 @@
   <div class="container">
     <div class="eyebrow">{% icon "book-open-check" 14 %} Tu espacio</div>
     <h1>Mi aprendizaje</h1>
-    <p>Retoma tus cursos, revisa lo que completaste y los cursos que guardaste para después.</p>
+    <p>Elige una ruta de aprendizaje para ver sus cursos, retoma lo que empezaste y revisa lo que completaste.</p>
   </div>
 </header>
 <div class="container section">
+  {% if selected %}
+  <section id="rutas" class="mb-4">
+    <div class="section-head"><div><h2>Rutas de aprendizaje</h2><p>Selecciona una ruta para ver los cursos que la forman</p></div></div>
+    <nav class="route-picker" aria-label="Rutas de aprendizaje">
+      {% for item in paths %}
+      <a class="chip {% if item.path.pk == selected.path.pk %}active{% endif %}" href="?ruta={{ item.path.slug }}&tab={{ tab }}#rutas" {% if item.path.pk == selected.path.pk %}aria-current="true"{% endif %}>{% icon "route" 15 %} {{ item.path.title }} <span class="count">{{ item.percent }}%</span></a>
+      {% endfor %}
+    </nav>
+    <div class="card card-pad route-panel">
+      <div>
+        <div class="flex gap-1 items-center mb-1">{% brand_badge selected.path.brand %}<span class="pill pill-neutral">{{ selected.courses|length }} cursos</span>{% if selected.percent == 100 %}<span class="pill pill-success">{% icon "check" 12 %} Completada</span>{% endif %}</div>
+        <h3 class="mb-1">{{ selected.path.title }}</h3>
+        <p class="muted small mb-1">{{ selected.path.summary }}</p>
+        <div class="flex justify-between small" style="font-weight:600"><span>{{ selected.done }} de {{ selected.courses|length }} cursos aprobados</span><span>{{ selected.percent }}%</span></div>
+        <div class="progress mt-1 {% if selected.percent == 100 %}done{% endif %}"><span style="width:{{ selected.percent }}%"></span></div>
+      </div>
+      {% if selected.next %}<a class="btn btn-primary" href="{{ selected.next.get_absolute_url }}">{% icon "play" 16 %} Continuar: {{ selected.next.title|truncatechars:30 }}</a>
+      {% elif selected.percent == 100 %}<div class="alert success mb-0">{% icon "party-popper" 18 %}<span>¡Completaste esta ruta!</span></div>{% endif %}
+    </div>
+    {% if selected.courses %}
+      <div class="course-grid mt-3">{% for course in selected.courses %}{% include "partials/course_card.html" with progress=path_progress %}{% endfor %}</div>
+    {% else %}
+      <div class="empty">{% icon "route" 44 %}<h3>Esta ruta aún no tiene cursos publicados</h3></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section id="mis-cursos">
+  <div class="section-head"><div><h2>Mis cursos</h2></div></div>
   <nav class="tabs">
-    <a href="?tab=en-curso" class="{% if tab == 'en-curso' %}active{% endif %}">{% icon "play-circle" 16 %} En curso <span class="count">{{ counts.en_curso }}</span></a>
-    <a href="?tab=completados" class="{% if tab == 'completados' %}active{% endif %}">{% icon "circle-check-big" 16 %} Completados <span class="count">{{ counts.completados }}</span></a>
-    <a href="?tab=guardados" class="{% if tab == 'guardados' %}active{% endif %}">{% icon "bookmark" 16 %} Guardados <span class="count">{{ counts.guardados }}</span></a>
+    <a href="?ruta={{ selected.path.slug }}&tab=en-curso#mis-cursos" class="{% if tab == 'en-curso' %}active{% endif %}">{% icon "play-circle" 16 %} En curso <span class="count">{{ counts.en_curso }}</span></a>
+    <a href="?ruta={{ selected.path.slug }}&tab=completados#mis-cursos" class="{% if tab == 'completados' %}active{% endif %}">{% icon "circle-check-big" 16 %} Completados <span class="count">{{ counts.completados }}</span></a>
+    <a href="?ruta={{ selected.path.slug }}&tab=guardados#mis-cursos" class="{% if tab == 'guardados' %}active{% endif %}">{% icon "bookmark" 16 %} Guardados <span class="count">{{ counts.guardados }}</span></a>
   </nav>
   {% if courses %}
     <div class="course-grid">{% for course in courses %}{% include "partials/course_card.html" %}{% endfor %}</div>
@@ -24,6 +53,7 @@
       <a class="btn btn-primary" href="{% url 'courses:explore' %}">Explorar cursos</a>
     </div>
   {% endif %}
+  </section>
 
   {% if attempts %}
   <section class="section">

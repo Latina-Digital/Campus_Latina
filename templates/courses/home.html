@@ -63,7 +63,7 @@
 
   {% if paths %}
   <section class="section">
-    <div class="section-head"><div><h2>Rutas de aprendizaje</h2><p>Programas completos para dominar una línea de productos</p></div><a class="btn btn-ghost" href="{% url 'courses:paths' %}">Ver rutas {% icon "arrow-right" 16 %}</a></div>
+    <div class="section-head"><div><h2>Rutas de aprendizaje</h2><p>Programas completos para dominar una línea de productos</p></div><a class="btn btn-ghost" href="{% url 'courses:my_learning' %}#rutas">Ver rutas {% icon "arrow-right" 16 %}</a></div>
     <div class="grid-3">
       {% for item in paths %}
       <a class="card card-pad" href="{{ item.path.get_absolute_url }}" style="color:var(--text);text-decoration:none">

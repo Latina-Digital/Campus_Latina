@@ -70,6 +70,10 @@ def _build(model, fila, usuarios, cargados):
                 return None
             kwargs[field.attname] = user_id
             continue
+        if field.column not in fila:
+            # Columna nueva que la tabla de la API todavía no tiene (falta ejecutar su script SQL).
+            kwargs[field.attname] = field.get_default()
+            continue
         value = from_api(field, fila.get(field.column))
         if field.many_to_one and value is not None and value not in cargados.get(field.related_model, ()):
             # Referencia a un registro que ya no existe (ej. la última lección vista fue borrada).

@@ -47,6 +47,9 @@ class Course(models.Model):
     is_published = models.BooleanField("publicado", default=False)
     is_featured = models.BooleanField("destacado", default=False)
     is_mandatory = models.BooleanField("obligatorio", default=False, help_text="Se resalta en el inicio de todos los usuarios.")
+    coming_soon = models.BooleanField(
+        "próximamente", default=False, help_text="Se ve en el catálogo, pero nadie puede comenzarlo hasta desmarcarlo."
+    )
     order = models.PositiveIntegerField("orden", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -66,6 +69,10 @@ class Course(models.Model):
 
     def get_absolute_url(self):
         return reverse("courses:detail", args=[self.slug])
+
+    def is_locked_for(self, user):
+        """Los cursos "próximamente" solo los pueden abrir los gestores, para prepararlos."""
+        return self.coming_soon and not user.is_staff
 
     @property
     def lessons(self):
@@ -244,7 +251,7 @@ class LearningPath(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse("courses:path_detail", args=[self.slug])
+        return reverse("courses:my_learning") + f"?ruta={self.slug}#rutas"
 
     @property
     def ordered_courses(self):

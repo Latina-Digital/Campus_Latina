@@ -364,6 +364,15 @@ def course_builder(request, pk):
             course.save(update_fields=["is_published", "updated_at"])
             messages.success(request, "Curso publicado." if course.is_published else "Curso pasado a borrador.")
             return redirect("panel:course_builder", pk=pk)
+        elif action == "toggle_coming_soon":
+            course.coming_soon = not course.coming_soon
+            course.save(update_fields=["coming_soon", "updated_at"])
+            messages.success(
+                request,
+                "Curso marcado como Próximamente: se ve en el catálogo, pero nadie puede tomarlo."
+                if course.coming_soon else "Curso habilitado: ya se puede tomar.",
+            )
+            return redirect("panel:course_builder", pk=pk)
     context = {
         "section": "courses",
         "course": course,

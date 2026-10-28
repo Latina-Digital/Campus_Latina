@@ -1,7 +1,6 @@
 import mimetypes
 import os
 import re
-from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -10,14 +9,13 @@ from django.core.exceptions import SuspiciousFileOperation
 from django.db.models import Count
 from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
-from django.utils import timezone
 from django.utils._os import safe_join
 
 from apps.catalog.models import Product
 from apps.certificates.models import Certificate
 from apps.courses.models import Category, Course, Lesson
 
-from .gamification import LEVELS, POINTS_CERTIFICATE, POINTS_LESSON, leaderboard, team_leaderboard
+from .gamification import LEVELS, POINTS_CERTIFICATE, POINTS_LESSON, leaderboard
 
 # Carpetas de /media/ que requieren sesión iniciada.
 PRIVATE_MEDIA = ("lessons/", "resources/")
@@ -42,26 +40,11 @@ def landing(request):
 
 @login_required
 def ranking(request):
-    view = request.GET.get("vista", "personas")
-    period = request.GET.get("periodo", "todo")
-    since = None
-    if period == "mes":
-        now = timezone.localtime()
-        since = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif period == "semana":
-        since = timezone.now() - timedelta(days=7)
-    if view == "equipos":
-        rows = team_leaderboard(since=since)
-        me = None
-    else:
-        rows = leaderboard(since=since)
-        me = next((r for r in rows if r["user"].pk == request.user.pk), None)
+    rows = leaderboard()
     context = {
-        "view": view,
-        "period": period,
         "podium": rows[:3],
         "rows": rows[3:50],
-        "me": me,
+        "me": next((r for r in rows if r["user"].pk == request.user.pk), None),
         "levels": LEVELS,
         "points_lesson": POINTS_LESSON,
         "points_cert": POINTS_CERTIFICATE,

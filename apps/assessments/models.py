@@ -17,7 +17,7 @@ class Quiz(models.Model):
         "preguntas por intento", default=10, help_text="Se eligen al azar del banco de preguntas."
     )
     passing_score = models.PositiveIntegerField("nota mínima (%)", default=70)
-    max_attempts = models.PositiveIntegerField("intentos máximos", default=0, help_text="0 = ilimitados.")
+    max_attempts = models.PositiveIntegerField("intentos máximos", default=2, help_text="0 = ilimitados.")
     show_review = models.BooleanField("mostrar respuestas al terminar", default=True)
 
     class Meta:

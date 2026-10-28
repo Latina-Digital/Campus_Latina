@@ -18,7 +18,7 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         model = Course
         fields = [
             "title", "summary", "brand", "category", "level", "description", "outcomes", "cover",
-            "instructor_name", "instructor_title", "related_products", "is_published", "is_featured", "is_mandatory", "order",
+            "instructor_name", "instructor_title", "related_products", "is_published", "coming_soon", "is_featured", "is_mandatory", "order",
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 5}),

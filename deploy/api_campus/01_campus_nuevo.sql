@@ -91,6 +91,7 @@ BEGIN
         is_published     BIT NOT NULL DEFAULT 0,
         is_featured      BIT NOT NULL DEFAULT 0,
         is_mandatory     BIT NOT NULL DEFAULT 0,
+        coming_soon      BIT NOT NULL DEFAULT 0,  -- "Próximamente": visible pero no se puede tomar
         [order]          INT NOT NULL DEFAULT 0,
         created_at       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         updated_at       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
@@ -268,7 +269,7 @@ BEGIN
         time_limit_minutes    INT NOT NULL DEFAULT 10,
         questions_per_attempt INT NOT NULL DEFAULT 10,
         passing_score         INT NOT NULL DEFAULT 70,
-        max_attempts          INT NOT NULL DEFAULT 0,          -- 0 = ilimitados
+        max_attempts          INT NOT NULL DEFAULT 2,          -- 0 = ilimitados
         show_review           BIT NOT NULL DEFAULT 1
     );
 END

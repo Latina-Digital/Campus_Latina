@@ -1,16 +1,20 @@
 {% with p=progress|get_item:course.pk %}
-<a class="course-card" href="{{ course.get_absolute_url }}">
+{# Un curso "próximamente" no se puede abrir: la tarjeta no es enlace (salvo para gestores). #}
+{% if course.coming_soon and not user.is_staff %}<div class="course-card soon" aria-disabled="true" title="Disponible próximamente">{% else %}<a class="course-card{% if course.coming_soon %} soon{% endif %}" href="{{ course.get_absolute_url }}">{% endif %}
   <div class="course-cover">
     {% if course.cover %}<img src="{{ course.cover.url }}" alt="" loading="lazy">{% else %}<div class="cover-fallback">{% icon course.category.icon|default:"book-open" 46 %}</div>{% endif %}
     {% brand_badge course.brand %}
-    {% if course.is_mandatory %}<span class="cover-flag pill pill-gold">{% icon "star" 12 %} Obligatorio</span>{% elif not course.is_published %}<span class="cover-flag pill pill-neutral">Borrador</span>{% endif %}
-    <span class="duration">{% icon "clock" 13 %} {{ course.duration_display }}</span>
+    {% if course.coming_soon %}<span class="cover-flag pill pill-gold">{% icon "hourglass" 12 %} Próximamente</span>
+    {% elif course.is_mandatory %}<span class="cover-flag pill pill-gold">{% icon "star" 12 %} Obligatorio</span>{% elif not course.is_published %}<span class="cover-flag pill pill-neutral">Borrador</span>{% endif %}
+    {% if not course.coming_soon %}<span class="duration">{% icon "clock" 13 %} {{ course.duration_display }}</span>{% endif %}
   </div>
   <div class="course-body">
     <div class="course-cat">{{ course.category.name|default:"General" }}</div>
     <h3 class="course-title">{{ course.title }}</h3>
     <p class="course-summary">{{ course.summary }}</p>
-    {% if p %}
+    {% if course.coming_soon %}
+      <div class="course-meta"><span>{% icon "hourglass" 14 %} Disponible próximamente</span></div>
+    {% elif p %}
       <div class="course-progress">
         <div class="row"><span>{% if p == 100 %}¡Completado!{% else %}Tu avance{% endif %}</span><span>{{ p }}%</span></div>
         <div class="progress {% if p == 100 %}done{% endif %}"><span style="width:{{ p }}%"></span></div>
@@ -23,5 +27,5 @@
       </div>
     {% endif %}
   </div>
-</a>
+{% if course.coming_soon and not user.is_staff %}</div>{% else %}</a>{% endif %}
 {% endwith %}

@@ -14,8 +14,7 @@
     <nav class="nav-links" aria-label="Principal">
       <a href="{% url 'courses:home' %}" class="{% if ns == 'courses' and un == 'home' %}active{% endif %}">{% icon "house" 17 %}<span class="lbl-md">Inicio</span></a>
       <a href="{% url 'courses:explore' %}" class="{% if ns == 'courses' and un in 'explore detail lesson' %}active{% endif %}">{% icon "compass" 17 %}Explorar</a>
-      <a href="{% url 'courses:paths' %}" class="{% if un == 'paths' or un == 'path_detail' %}active{% endif %}">{% icon "route" 17 %}Rutas</a>
-      <a href="{% url 'courses:my_learning' %}" class="{% if un == 'my_learning' %}active{% endif %}">{% icon "book-open-check" 17 %}<span class="lbl-md">Mi aprendizaje</span></a>
+      <a href="{% url 'courses:my_learning' %}" class="{% if un == 'my_learning' %}active{% endif %}">{% icon "route" 17 %}Mi aprendizaje</a>
       <a href="{% url 'catalog:list' %}" class="{% if ns == 'catalog' %}active{% endif %}">{% icon "package" 17 %}Productos</a>
       <a href="{% url 'core:ranking' %}" class="{% if un == 'ranking' %}active{% endif %}">{% icon "trophy" 17 %}Ranking</a>
     </nav>
@@ -71,8 +70,7 @@
       <form action="{% url 'courses:explore' %}" class="mb-2"><div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" placeholder="Buscar…"></div></form>
       <a href="{% url 'courses:home' %}">{% icon "house" 19 %} Inicio</a>
       <a href="{% url 'courses:explore' %}">{% icon "compass" 19 %} Explorar cursos</a>
-      <a href="{% url 'courses:paths' %}">{% icon "route" 19 %} Rutas de aprendizaje</a>
-      <a href="{% url 'courses:my_learning' %}">{% icon "book-open-check" 19 %} Mi aprendizaje</a>
+      <a href="{% url 'courses:my_learning' %}">{% icon "route" 19 %} Mi aprendizaje y rutas</a>
       <a href="{% url 'catalog:list' %}">{% icon "package" 19 %} Productos</a>
       <a href="{% url 'core:ranking' %}">{% icon "trophy" 19 %} Ranking</a>
       <a href="{% url 'certificates:list' %}">{% icon "award" 19 %} Mis certificados</a>

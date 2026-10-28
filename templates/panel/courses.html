@@ -19,7 +19,7 @@
         <td>{{ c.n_lessons }}</td>
         <td>{{ c.n_enrolled }}</td>
         <td>{{ c.n_certs }}</td>
-        <td>{% if c.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}{% if c.is_mandatory %} <span class="pill pill-gold">Obligatorio</span>{% endif %}</td>
+        <td>{% if c.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}{% if c.coming_soon %} <span class="pill pill-gold">Próximamente</span>{% endif %}{% if c.is_mandatory %} <span class="pill pill-gold">Obligatorio</span>{% endif %}</td>
         <td class="actions">
           <a class="btn btn-sm btn-navy" href="{% url 'panel:course_builder' c.pk %}">{% icon "blocks" 14 %} Contenido</a>
           <a class="btn btn-sm" href="{{ c.get_absolute_url }}" title="Ver como estudiante">{% icon "eye" 14 %}</a>

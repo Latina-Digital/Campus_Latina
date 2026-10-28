@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "apps.apidata.middleware.ApiRefreshMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -89,7 +90,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Los datos del campus viven en SQL Server y se leen y escriben por la API
 # (CAMPUS_API_URL, ver apps/apidata). Esta base SQLite es solo la copia de trabajo:
-# se vuelve a llenar desde la API cada vez que arranca el sitio. Guarda además las
+# se vuelve a llenar desde la API al arrancar el sitio y luego cada
+# CAMPUS_API_REFRESH_SECONDS, para ver los cambios hechos desde otro campus. Guarda además las
 # sesiones abiertas.
 SQLITE_PATH = BASE_DIR / env("SQLITE_PATH", "data/copia_api.sqlite3")
 SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -179,6 +181,8 @@ CAMPUS_API_URL = env("CAMPUS_API_URL", "")
 CAMPUS_API_URLS = env_list("CAMPUS_API_URLS", "")
 CAMPUS_API_KEY = env("CAMPUS_API_KEY", "") or SYSPRO_API_KEY
 CAMPUS_API_TIMEOUT = int(env("CAMPUS_API_TIMEOUT", "20"))
+# Cada cuántos segundos se vuelve a leer la API (0 = solo al arrancar).
+CAMPUS_API_REFRESH_SECONDS = int(env("CAMPUS_API_REFRESH_SECONDS", "60"))
 if sys.argv[1:2] == ["test"]:
     # Las pruebas nunca escriben en la API real.
     CAMPUS_API_URL, CAMPUS_API_URLS = "", []

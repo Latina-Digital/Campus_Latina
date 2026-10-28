@@ -10,6 +10,8 @@ import io
 import re
 import shutil
 import tempfile
+import threading
+import time
 from unittest import mock
 
 from django.apps import apps
@@ -282,6 +284,26 @@ class ApiSyncTests(TransactionTestCase):
         course.title = "Título editado"
         course.save()
         self.assertEqual(self.api.rows["Cursos"][course.pk]["title"], "Título editado")
+
+    def test_copy_is_reloaded_when_stale(self):
+        from apps.courses.models import Course
+
+        from . import middleware, mirror
+
+        call_command("seed_campus", stdout=io.StringIO())
+        course = Course.objects.first()
+        # Otro campus cambia el título directamente en la API.
+        self.api.rows["Cursos"][course.pk]["title"] = "Cambiado en otro campus"
+        with override_settings(CAMPUS_API_URL="http://api", CAMPUS_API_REFRESH_SECONDS=60):
+            mirror.ultima_carga = time.monotonic()
+            middleware.refresh_if_stale()  # copia reciente: no recarga
+            self.assertNotEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
+            mirror.ultima_carga -= 61
+            middleware.refresh_if_stale()
+            for hilo in threading.enumerate():
+                if hilo.name == "recarga-api":
+                    hilo.join()
+        self.assertEqual(Course.objects.get(pk=course.pk).title, "Cambiado en otro campus")
 
     def test_api_error_cancels_the_local_change(self):
         from apps.core.models import Announcement

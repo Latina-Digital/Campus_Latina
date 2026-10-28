@@ -26,6 +26,9 @@ from .sync import paused
 
 logger = logging.getLogger("apps.apidata")
 
+# Momento (time.monotonic) de la última carga; lo usa middleware.py para recargar.
+ultima_carga = 0.0
+
 
 def prepare():
     """Crea las tablas locales y carga los datos de la API. Se llama al arrancar el sitio."""
@@ -37,6 +40,7 @@ def prepare():
 
 
 def load_all():
+    global ultima_carga
     inicio = time.monotonic()
     # Primero se descarga todo; así la base local queda bloqueada el menor tiempo posible.
     datos = {tabla: client.call("CONSULTAR", tabla) for _label, tabla in TABLAS}
@@ -63,6 +67,7 @@ def load_all():
             model._base_manager.bulk_create(objs, batch_size=500)
             cargados[model] = {obj.pk for obj in objs}
         _load_m2m(datos, usuarios, cargados)
+    ultima_carga = time.monotonic()
     total = sum(len(filas) for filas in datos.values())
     logger.info("Datos del campus cargados desde la API: %s registros en %.1f s.", total, time.monotonic() - inicio)
     return total

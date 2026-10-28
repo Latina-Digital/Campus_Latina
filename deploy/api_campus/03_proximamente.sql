@@ -45,7 +45,10 @@ DECLARE @df sysname = (
     JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
     WHERE dc.parent_object_id = OBJECT_ID(N'dbo.CV_Evaluaciones') AND c.name = N'max_attempts');
 IF @df IS NOT NULL
-    EXEC (N'ALTER TABLE dbo.CV_Evaluaciones DROP CONSTRAINT ' + QUOTENAME(@df));
+BEGIN
+    DECLARE @sql nvarchar(400) = N'ALTER TABLE dbo.CV_Evaluaciones DROP CONSTRAINT ' + QUOTENAME(@df) + N';';
+    EXEC sp_executesql @sql;
+END
 ALTER TABLE dbo.CV_Evaluaciones ADD CONSTRAINT DF_CV_Evaluaciones_max_attempts DEFAULT 2 FOR max_attempts;
 GO
 

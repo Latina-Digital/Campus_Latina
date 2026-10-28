@@ -674,6 +674,21 @@ dl.kv dd { margin: 0; font-weight: 600; }
 .cell-user small { display: block; color: var(--muted); font-size: 12px; }
 .cell-media { display: flex; gap: 12px; align-items: center; }
 .cell-media img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+.cell-media img, .cell-media .stat-icon { flex-shrink: 0; }
+.cell-media strong { display: block; line-height: 1.35; }
+.cell-media small { display: block; margin-top: 2px; }
+.data-table .num { text-align: center; white-space: nowrap; width: 1%; }
+.data-table .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.data-table .actions > * { vertical-align: middle; }
+.data-table .actions > * + * { margin-left: 4px; }
+/* Lista de cursos del panel: el nombre del curso tiene el espacio principal. */
+.course-table .col-main { min-width: 260px; }
+.course-table td:nth-child(2) { white-space: nowrap; }
+.course-table td:nth-child(4) { min-width: 120px; }
+.mini-stats { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.mini-stats li { display: flex; align-items: center; gap: 6px; }
+.mini-stats .icon { color: var(--muted); }
+.mini-stats strong { color: var(--text); }
 .pagination { display: flex; gap: 6px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
 .pagination a, .pagination span { min-width: 38px; height: 38px; display: grid; place-items: center; padding: 0 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font-weight: 600; text-decoration: none; }
 .pagination .current { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }

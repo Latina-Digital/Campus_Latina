@@ -70,7 +70,13 @@ def serve_media(request, path):
         raise Http404
     if not os.path.isfile(full_path):
         raise Http404
-    size = os.path.getsize(full_path)
+    stat = os.stat(full_path)
+    size = stat.st_size
+    # La huella cambia si el archivo se reemplaza: el navegador pregunta cada vez (no-cache)
+    # y, si no cambió, recibe un 304 sin volver a descargarlo.
+    etag = f'"{stat.st_mtime_ns:x}-{size:x}"'
+    if request.headers.get("If-None-Match") == etag:
+        return HttpResponse(status=304, headers={"ETag": etag, "Cache-Control": "private, no-cache"})
     content_type = mimetypes.guess_type(full_path)[0] or "application/octet-stream"
     match = re.match(r"bytes=(\d*)-(\d*)", request.headers.get("Range", ""))
     if match and (match.group(1) or match.group(2)):
@@ -100,7 +106,8 @@ def serve_media(request, path):
     else:
         response = FileResponse(open(full_path, "rb"), content_type=content_type)
     response["Accept-Ranges"] = "bytes"
-    response["Cache-Control"] = "private, max-age=3600"
+    response["ETag"] = etag
+    response["Cache-Control"] = "private, no-cache"
     return response
 
 

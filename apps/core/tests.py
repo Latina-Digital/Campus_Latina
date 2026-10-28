@@ -35,6 +35,18 @@ class CampusFlowTests(TestCase):
             self.assertEqual(response.status_code, 200, url)
             self.assertIn("no-cache", response["Cache-Control"], url)
 
+    def test_replaced_media_is_not_kept_by_the_browser(self):
+        course = Course.objects.exclude(cover="").first()
+        url = course.cover.url
+        first = self.client.get(url)
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("no-cache", first["Cache-Control"])
+        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 304)
+        # Se reemplaza la imagen con el mismo nombre: el navegador recibe la nueva.
+        with open(course.cover.path, "ab") as f:
+            f.write(b"0")
+        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 200)
+
     def test_static_files_are_served_without_collectstatic(self):
         page = self.client.get(reverse("core:landing")).content.decode()
         css = re.search(r'href="(/static/css/campus\.css\?v=\w+)"', page)

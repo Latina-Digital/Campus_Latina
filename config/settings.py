@@ -127,7 +127,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": {"BACKEND": "apps.core.storage.VersionedMediaStorage"},
     # Los archivos se sirven directo desde static/ (ver apps/core/storage.py): no hace
     # falta ejecutar collectstatic para que un cambio de estilos llegue al sitio.
     "staticfiles": {"BACKEND": "apps.core.storage.VersionedStaticFilesStorage"},

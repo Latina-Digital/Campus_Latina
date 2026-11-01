@@ -18,8 +18,8 @@ from apps.courses.models import Category, Course, Lesson
 
 from .gamification import LEVELS, POINTS_CERTIFICATE, POINTS_LESSON, leaderboard
 
-# Carpetas de /media/ que requieren sesión iniciada.
-PRIVATE_MEDIA = ("lessons/", "resources/")
+# Carpetas de /media/ que requieren sesión iniciada (también las firmas del certificado).
+PRIVATE_MEDIA = ("lessons/", "resources/", "certificados/")
 
 
 def landing(request):

@@ -10,8 +10,7 @@ def campus(request):
     ctx = {
         "CAMPUS_NAME": settings.CAMPUS_NAME,
         "CAMPUS_COMPANY": settings.CAMPUS_COMPANY,
-        "CAMPUS_SIGNER_1": settings.CAMPUS_SIGNER_1,
-        "CAMPUS_SIGNER_2": settings.CAMPUS_SIGNER_2,
+
         "CAMPUS_LIVE_SECONDS": settings.CAMPUS_LIVE_SECONDS,
         "LIVE_VERSION": live.version(),
     }

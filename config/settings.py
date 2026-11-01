@@ -193,8 +193,12 @@ if sys.argv[1:2] == ["test"]:
 # --- Identidad del campus ----------------------------------------------------
 CAMPUS_NAME = env("CAMPUS_NAME", "Campus Latina")
 CAMPUS_COMPANY = env("CAMPUS_COMPANY", "Industrial Latina S.A.")
-CAMPUS_SIGNER_1 = env("CAMPUS_SIGNER_1", "Gerencia Comercial")
-CAMPUS_SIGNER_2 = env("CAMPUS_SIGNER_2", "Jefatura de Capacitación")
+# Quienes firman los certificados: (nombre, cargo, imagen de la firma dentro de media/).
+# Las firmas no van en el repositorio: se copian a media/certificados/firmas/ en cada servidor.
+CAMPUS_SIGNERS = [
+    (env("CAMPUS_FIRMA_1_NOMBRE", "Mtr. Mario Dávila"), env("CAMPUS_FIRMA_1_CARGO", "Gerente Comercial"), "certificados/firmas/firma-1.png"),
+    (env("CAMPUS_FIRMA_2_NOMBRE", "Ing. Víctor Loor"), env("CAMPUS_FIRMA_2_CARGO", "Jefe Técnico"), "certificados/firmas/firma-2.png"),
+]
 # URL pública usada en el QR de los certificados (ej: https://campus.latina.com.ec).
 # Si se deja vacía se usa la dirección desde la que se generó el certificado.
 CAMPUS_PUBLIC_URL = env("CAMPUS_PUBLIC_URL", "").rstrip("/")

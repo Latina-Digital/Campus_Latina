@@ -26,7 +26,7 @@ PRODUCT_LINES = [
     ("Clavos y fijaciones", "hammer"),
 ]
 
-# image = archivo en apps/core/seed_assets (prod-<image>.jpg)
+# image = archivo en apps/core/seed_assets (prod-<image>.png, o .jpg si es una foto)
 PRODUCTS = [
     {
         "name": "Duralin Premium Forte", "brand": "latina", "line": "Pinturas", "image": "duralin",

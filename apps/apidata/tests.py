@@ -25,7 +25,7 @@ from apps.accounts.models import User
 from . import client, live
 from .client import CampusApiError
 from .mirror import load_all
-from .registry import EXTRAS, M2M, TABLAS, api_has_column, is_user_fk, set_missing_columns
+from .registry import EXTRAS, M2M, TABLAS, api_has_column, from_api, is_user_fk, set_missing_columns
 
 SQL_FILE = settings.BASE_DIR / "deploy" / "api_campus" / "01_campus_nuevo.sql"
 
@@ -332,6 +332,16 @@ class ApiSyncTests(TransactionTestCase):
         self.assertNotEqual(live.version(), version)
         self.client.force_login(learner)
         self.assertEqual(self.client.get(reverse("core:live_state")).json(), {"v": live.version()})
+
+    def test_date_columns_come_back_as_dates(self):
+        from datetime import date
+
+        from apps.courses.models import Course
+
+        field = Course._meta.get_field("available_until")
+        self.assertEqual(from_api(field, "2026-11-12T00:00:00"), date(2026, 11, 12))  # como lo entrega .NET
+        self.assertEqual(from_api(field, "2026-11-12"), date(2026, 11, 12))
+        self.assertIsNone(from_api(field, None))
 
     def test_api_error_cancels_the_local_change(self):
         from apps.core.models import Announcement

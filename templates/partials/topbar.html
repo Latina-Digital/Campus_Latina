@@ -18,12 +18,9 @@
       <a href="{% url 'catalog:list' %}" class="{% if ns == 'catalog' %}active{% endif %}">{% icon "package" 17 %}Productos</a>
       <a href="{% url 'core:ranking' %}" class="{% if un == 'ranking' %}active{% endif %}">{% icon "trophy" 17 %}Ranking</a>
     </nav>
-    <form class="nav-search" action="{% url 'courses:explore' %}" role="search">
-      <div class="input-icon">{% icon "search" 16 %}<input class="input" type="search" name="q" placeholder="Buscar cursos o productos…" value="{{ request.GET.q }}" aria-label="Buscar"></div>
-    </form>
     {% endif %}
 
-    <div class="nav-actions" {% if not user.is_authenticated %}style="margin-left:auto"{% endif %}>
+    <div class="nav-actions">
       <button class="btn btn-ghost btn-icon" type="button" x-data="themeToggle" @click="toggle()" :aria-label="isDark ? 'Usar tema claro' : 'Usar tema oscuro'" title="Cambiar tema">
         <span x-show="!isDark">{% icon "moon" 19 %}</span><span x-show="isDark" x-cloak>{% icon "sun" 19 %}</span>
       </button>

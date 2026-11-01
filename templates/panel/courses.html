@@ -21,14 +21,14 @@
           <li>{% icon "users" 14 %} <strong>{{ c.n_enrolled }}</strong> inscrito{{ c.n_enrolled|pluralize }}</li>
           <li>{% icon "award" 14 %} <strong>{{ c.n_certs }}</strong> certificado{{ c.n_certs|pluralize }}</li>
         </ul></td>
-        <td><div class="pills">{% if c.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}{% if c.coming_soon %}<span class="pill pill-gold">Próximamente</span>{% endif %}{% if c.is_mandatory %}<span class="pill pill-gold">Obligatorio</span>{% endif %}</div></td>
+        <td><div class="pills">{% if c.is_published %}<span class="pill pill-success">Publicado</span>{% else %}<span class="pill pill-neutral">Borrador</span>{% endif %}{% if c.coming_soon %}<span class="pill pill-gold">Próximamente</span>{% endif %}{% if c.is_closed %}<span class="pill pill-closed" title="Cerró el {{ c.available_until|date:'j \d\e F' }}">Plazo cerrado</span>{% elif c.available_until %}<span class="pill pill-neutral" title="Último día para tomarlo">Hasta {{ c.available_until|date:"j M" }}</span>{% endif %}{% if c.is_mandatory %}<span class="pill pill-gold">Obligatorio</span>{% endif %}</div></td>
         <td class="actions">
           <a class="btn btn-sm btn-navy" href="{% url 'panel:course_builder' c.pk %}">{% icon "blocks" 14 %} Contenido</a>
           <form method="post" action="{% url 'panel:course_coming_soon' c.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
             {% if c.coming_soon %}<button class="btn btn-sm btn-icon btn-primary" title="Habilitar: que ya se pueda tomar" aria-label="Habilitar curso">{% icon "unlock" 15 %}</button>
             {% else %}<button class="btn btn-sm btn-icon" title="Marcar como Próximamente" aria-label="Marcar como Próximamente">{% icon "hourglass" 15 %}</button>{% endif %}
           </form>
-          {% if c.coming_soon %}<button class="btn btn-sm btn-icon" type="button" disabled title="Habilita el curso para verlo como estudiante">{% icon "eye-off" 15 %}</button>
+          {% if c.is_locked %}<button class="btn btn-sm btn-icon" type="button" disabled title="{% if c.coming_soon %}Habilita el curso para verlo como estudiante{% else %}Amplía la fecha límite para verlo como estudiante{% endif %}">{% icon "eye-off" 15 %}</button>
           {% else %}<a class="btn btn-sm btn-icon" href="{{ c.get_absolute_url }}" title="Ver como estudiante" aria-label="Ver como estudiante">{% icon "eye" 15 %}</a>{% endif %}
           <a class="btn btn-sm btn-icon btn-danger" href="{% url 'panel:course_delete' c.pk %}" title="Eliminar" aria-label="Eliminar">{% icon "trash-2" 15 %}</a>
         </td>

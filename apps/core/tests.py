@@ -142,6 +142,31 @@ class CampusFlowTests(TestCase):
         self.client.force_login(self.admin)
         self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
 
+    def test_course_closes_after_its_deadline(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        course = Course.objects.filter(is_published=True).first()
+        hoy = timezone.localdate()
+        self.client.force_login(self.learner)
+        # Hoy es el último día: se puede tomar y la tarjeta lo avisa.
+        Course.objects.filter(pk=course.pk).update(available_until=hoy)
+        self.assertContains(self.client.get(reverse("courses:explore")), "Último día")
+        self.assertEqual(self.client.get(course.get_absolute_url()).status_code, 200)
+        # Desde mañana el plazo está cerrado: nadie entra, ni los gestores.
+        Course.objects.filter(pk=course.pk).update(available_until=hoy - timedelta(days=1))
+        explore = self.client.get(reverse("courses:explore"))
+        self.assertContains(explore, "Plazo cerrado")
+        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
+        for url in [course.get_absolute_url(), course.lessons.first().get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
+            response = self.client.get(url, follow=True)
+            self.assertRedirects(response, reverse("courses:explore"))
+            self.assertContains(response, "El plazo para tomar este curso terminó")
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
+        self.assertContains(self.client.get(reverse("panel:course_list")), "Plazo cerrado")
+
     def test_panel_toggles_coming_soon(self):
         course = Course.objects.filter(is_published=True).first()
         self.client.force_login(self.admin)

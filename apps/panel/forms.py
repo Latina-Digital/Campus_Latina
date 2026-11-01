@@ -19,9 +19,11 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         model = Course
         fields = [
             "title", "summary", "brand", "category", "level", "description", "outcomes", "cover",
-            "instructor_name", "instructor_title", "related_products", "is_published", "coming_soon", "is_featured", "is_mandatory", "order",
+            "instructor_name", "instructor_title", "related_products", "is_published", "coming_soon", "available_until",
+            "is_featured", "is_mandatory", "order",
         ]
         widgets = {
+            "available_until": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "description": forms.Textarea(attrs={"rows": 5}),
             "outcomes": forms.Textarea(attrs={"rows": 5, "placeholder": "Identificar las diferencias entre…\nRecomendar el producto ideal para…"}),
             "related_products": forms.CheckboxSelectMultiple,
@@ -29,10 +31,12 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not api_has_column(Course, "coming_soon"):
-            field = self.fields["coming_soon"]
-            field.disabled = True
-            field.help_text = "Se activa cuando se ejecute deploy/api_campus/03_proximamente.sql en SQL Server."
+        # Opciones cuya columna todavía no existe en SQL Server: se muestran desactivadas.
+        for name, script in (("coming_soon", "03_proximamente.sql"), ("available_until", "04_plazo_cursos.sql")):
+            if not api_has_column(Course, name):
+                field = self.fields[name]
+                field.disabled = True
+                field.help_text = f"Se activa cuando se ejecute deploy/api_campus/{script} en SQL Server."
 
 
 class ModuleForm(StyledFormMixin, forms.ModelForm):

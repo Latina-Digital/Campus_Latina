@@ -92,6 +92,7 @@ BEGIN
         is_featured      BIT NOT NULL DEFAULT 0,
         is_mandatory     BIT NOT NULL DEFAULT 0,
         coming_soon      BIT NOT NULL DEFAULT 0,  -- "Próximamente": visible pero no se puede tomar
+        available_until  DATE NULL,                -- último día para tomarlo; después, "Plazo cerrado"
         [order]          INT NOT NULL DEFAULT 0,
         created_at       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         updated_at       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()

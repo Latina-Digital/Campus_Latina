@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.formats import date_format
 
 from apps.core.choices import Brand, Level
 from apps.core.utils import format_minutes, unique_slug
@@ -50,6 +52,10 @@ class Course(models.Model):
     coming_soon = models.BooleanField(
         "próximamente", default=False, help_text="Se ve en el catálogo, pero nadie puede comenzarlo hasta desmarcarlo."
     )
+    available_until = models.DateField(
+        "disponible hasta", null=True, blank=True,
+        help_text="Último día para tomar el curso. Después se ve como «Plazo cerrado» y nadie puede tomarlo. Vacío = sin límite.",
+    )
     order = models.PositiveIntegerField("orden", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -69,6 +75,28 @@ class Course(models.Model):
 
     def get_absolute_url(self):
         return reverse("courses:detail", args=[self.slug])
+
+    @property
+    def days_left(self):
+        """Días que quedan para tomarlo (0 = hoy es el último), o None si no tiene fecha límite."""
+        if not self.available_until:
+            return None
+        return (self.available_until - timezone.localdate()).days
+
+    @property
+    def is_closed(self):
+        return self.days_left is not None and self.days_left < 0
+
+    @property
+    def is_locked(self):
+        """Nadie puede tomarlo: todavía no se habilita o ya pasó su fecha límite."""
+        return self.coming_soon or self.is_closed
+
+    @property
+    def lock_message(self):
+        if self.coming_soon:
+            return "Este curso estará disponible próximamente."
+        return f"El plazo para tomar este curso terminó el {date_format(self.available_until, 'j \d\e F')}."
 
     @property
     def lessons(self):

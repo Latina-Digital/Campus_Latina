@@ -7,6 +7,7 @@ from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.assessments.services import attempts_left, finished_attempts
@@ -41,7 +42,7 @@ def path_progress(user, paths):
             "courses": courses,
             "done": done,
             "percent": round(done * 100 / len(courses)) if courses else 0,
-            "next": next((c for c in courses if c.pk not in certified and not c.coming_soon), None),
+            "next": next((c for c in courses if c.pk not in certified and not c.is_locked), None),
         })
     return result
 
@@ -56,7 +57,9 @@ def home(request):
     enrolled_ids = {e.course_id for e in enrollments}
     published = published_courses()
     mandatory = [c for c in published.filter(is_mandatory=True) if not user.certificates.filter(course=c).exists()]
-    recommended = list(published.exclude(pk__in=enrolled_ids).order_by("-is_featured", "order")[:8])
+    # Los que ya cerraron su plazo no se recomiendan: nadie puede tomarlos.
+    open_now = published.exclude(available_until__lt=timezone.localdate())
+    recommended = list(open_now.exclude(pk__in=enrolled_ids).order_by("-is_featured", "order")[:8])
     progress = progress_map(user, [e.course for e in in_progress] + mandatory + recommended)
     board = leaderboard()
     my_rank = next((r["rank"] for r in board if r["user"].pk == user.pk), None)
@@ -66,7 +69,7 @@ def home(request):
         "recommended": recommended,
         "progress": progress,
         "completed_count": sum(1 for e in enrollments if e.completed_at),
-        "courses_total": published.filter(coming_soon=False).count(),
+        "courses_total": open_now.filter(coming_soon=False).count(),
         "paths": path_progress(user, LearningPath.objects.filter(is_published=True).prefetch_related("steps__course")[:3]),
         "announcements": Announcement.objects.filter(is_active=True)[:3],
         "categories": Category.objects.annotate(n=Count("courses", filter=Q(courses__is_published=True))).filter(n__gt=0),
@@ -122,8 +125,8 @@ def explore(request):
 def course_detail(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
     user = request.user
-    if course.coming_soon:
-        messages.info(request, "Este curso estará disponible próximamente.")
+    if course.is_locked:
+        messages.info(request, course.lock_message)
         return redirect("courses:explore")
     modules = course.modules.prefetch_related("lessons")
     progress = course_progress(user, course)
@@ -161,8 +164,8 @@ def course_detail(request, slug):
 @require_POST
 def course_start(request, slug):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
-    if course.coming_soon:
-        messages.info(request, "Este curso estará disponible próximamente.")
+    if course.is_locked:
+        messages.info(request, course.lock_message)
         return redirect("courses:explore")
     enrollment = enroll(request.user, course)
     progress = course_progress(request.user, course)
@@ -178,8 +181,8 @@ def course_start(request, slug):
 @login_required
 def lesson_view(request, slug, lesson_id):
     course = get_object_or_404(visible_courses(request.user), slug=slug)
-    if course.coming_soon:
-        messages.info(request, "Este curso estará disponible próximamente.")
+    if course.is_locked:
+        messages.info(request, course.lock_message)
         return redirect("courses:explore")
     lesson = get_object_or_404(Lesson.objects.select_related("module"), pk=lesson_id, module__course=course)
     enrollment = enroll(request.user, course)
@@ -216,7 +219,7 @@ def _json_body(request):
 def lesson_complete(request, lesson_id):
     lesson = get_object_or_404(Lesson.objects.select_related("module__course"), pk=lesson_id)
     course = lesson.module.course
-    if course.coming_soon:
+    if course.is_locked:
         return JsonResponse({"ok": False}, status=403)
     complete_lesson(request.user, lesson)
     progress = course_progress(request.user, course)

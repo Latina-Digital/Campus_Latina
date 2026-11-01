@@ -8,7 +8,7 @@ guarda como la columna "username" (el usuario de Syspro).
 """
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from django.apps import apps
@@ -156,6 +156,9 @@ def from_api(field, value):
         return None
     if isinstance(field, models.DateTimeField):
         return parse_datetime(value)
+    if isinstance(field, models.DateField):
+        # Columna DATE: .NET la entrega como '2026-11-12T00:00:00'.
+        return date.fromisoformat(value[:10])
     if isinstance(field, models.JSONField):
         return json.loads(value) if isinstance(value, str) else value
     if isinstance(field, models.DecimalField):

@@ -11,6 +11,23 @@ class QuizError(Exception):
     pass
 
 
+# Cada intento incluye, si el banco las tiene, al menos estas preguntas por dificultad.
+MINIMOS = {Question.Difficulty.DIFICIL: 2, Question.Difficulty.CALCULO: 1}
+
+
+def pick_questions(questions, n):
+    """Sortea n preguntas respetando MINIMOS; el resto sale al azar de todo el banco."""
+    n = min(n or len(questions), len(questions))
+    chosen = []
+    for level, minimum in MINIMOS.items():
+        pool = [q for q in questions if q.difficulty == level]
+        chosen += random.sample(pool, min(minimum, len(pool), n - len(chosen)))
+    rest = [q for q in questions if q not in chosen]
+    chosen += random.sample(rest, n - len(chosen))
+    random.shuffle(chosen)
+    return chosen
+
+
 def finished_attempts(user, quiz):
     return Attempt.objects.filter(user=user, quiz=quiz, finished_at__isnull=False)
 
@@ -42,7 +59,7 @@ def start_attempt(user, quiz):
     questions = [q for q in questions if q.choices.all()]
     if not questions:
         raise QuizError("Esta evaluación todavía no tiene preguntas configuradas.")
-    chosen = random.sample(questions, min(quiz.questions_per_attempt or len(questions), len(questions)))
+    chosen = pick_questions(questions, quiz.questions_per_attempt)
     order = {}
     for q in chosen:
         ids = [c.pk for c in q.choices.all()]
@@ -128,7 +145,10 @@ def attempt_questions(attempt, with_answers=False):
             if with_answers:
                 option["is_correct"] = choice.is_correct
             options.append(option)
-        item = {"id": qid, "number": number, "text": question.text, "options": options, "answered": chosen is not None}
+        item = {
+            "id": qid, "number": number, "text": question.text, "options": options, "answered": chosen is not None,
+            "difficulty": question.difficulty, "difficulty_label": question.get_difficulty_display(),
+        }
         if with_answers:
             item["explanation"] = question.explanation
             item["is_correct"] = any(o["chosen"] and o["is_correct"] for o in options)

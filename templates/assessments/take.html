@@ -30,7 +30,7 @@
     <input type="hidden" name="timeout" value="0" x-ref="timeout">
     {% for q in questions %}
     <section class="card q-card" x-show="current === {{ forloop.counter0 }}" {% if not forloop.first %}x-cloak{% endif %}>
-      <div class="q-num">Pregunta {{ q.number }} de {{ questions|length }}</div>
+      <div class="q-num">Pregunta {{ q.number }} de {{ questions|length }}{% if q.difficulty == "dificil" %} <span class="pill pill-red">{% icon "flame" 12 %} Difícil</span>{% elif q.difficulty == "calculo" %} <span class="pill pill-navy">{% icon "calculator" 12 %} Cálculo</span>{% endif %}</div>
       <h2>{{ q.text }}</h2>
       {% for opt in q.options %}
       <label class="option">

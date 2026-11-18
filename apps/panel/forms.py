@@ -1,7 +1,7 @@
 from django import forms
 
 from apps.apidata.registry import api_has_column
-from apps.assessments.models import Quiz
+from apps.assessments.models import Question, Quiz
 from apps.catalog.models import Product, ProductLine
 from apps.core.forms import StyledFormMixin
 from apps.core.models import Announcement
@@ -97,9 +97,16 @@ class QuestionForm(StyledFormMixin, forms.Form):
     correct = forms.TypedChoiceField(
         label="Respuesta correcta", coerce=int, choices=[(i, f"Opción {'ABCDEF'[i]}") for i in range(MAX_CHOICES)]
     )
+    difficulty = forms.ChoiceField(
+        label="Dificultad", choices=Question.Difficulty.choices, initial=Question.Difficulty.BASICA,
+        help_text="Cada intento incluye al menos 2 difíciles y 1 de cálculo, si el banco las tiene.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not api_has_column(Question, "difficulty"):
+            self.fields["difficulty"].disabled = True
+            self.fields["difficulty"].help_text = "Se activa cuando se ejecute deploy/api_campus/05_dificultad_preguntas.sql en SQL Server."
         for i in range(self.MAX_CHOICES):
             field = forms.CharField(label=f"Opción {'ABCDEF'[i]}", required=i < 2, max_length=400)
             field.widget.attrs.update({"class": "input", "placeholder": "Opcional" if i >= 2 else ""})

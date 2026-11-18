@@ -33,8 +33,17 @@ class Quiz(models.Model):
 
 
 class Question(models.Model):
+    class Difficulty(models.TextChoices):
+        BASICA = "basica", "Básica"
+        DIFICIL = "dificil", "Difícil"
+        CALCULO = "calculo", "Cálculo"
+
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
     text = models.TextField("pregunta")
+    difficulty = models.CharField(
+        "dificultad", max_length=10, choices=Difficulty.choices, default=Difficulty.BASICA,
+        help_text="Cada intento incluye al menos 2 preguntas difíciles y 1 de cálculo, si el banco las tiene.",
+    )
     explanation = models.TextField("explicación", blank=True, help_text="Se muestra en la revisión.")
     order = models.PositiveIntegerField("orden", default=0)
 

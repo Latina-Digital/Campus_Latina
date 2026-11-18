@@ -283,6 +283,7 @@ BEGIN
         quiz_id     INT NOT NULL REFERENCES dbo.CV_Evaluaciones(id) ON DELETE CASCADE,
         [text]      NVARCHAR(MAX) NOT NULL,
         explanation NVARCHAR(MAX) NOT NULL DEFAULT N'',
+        difficulty  NVARCHAR(10) NOT NULL DEFAULT N'basica',  -- basica, dificil o calculo
         [order]     INT NOT NULL DEFAULT 0
     );
     CREATE INDEX IX_CV_Preguntas_quiz ON dbo.CV_Preguntas(quiz_id);

@@ -18,7 +18,7 @@
   {% for q in questions %}
   <div class="q-item" id="q-{{ q.pk }}">
     <div class="flex justify-between gap-2">
-      <strong>{{ forloop.counter }}. {{ q.text }}</strong>
+      <strong>{{ forloop.counter }}. {{ q.text }}{% if q.difficulty != "basica" %} <span class="pill pill-{% if q.difficulty == "calculo" %}navy{% else %}red{% endif %}">{% if q.difficulty == "calculo" %}{% icon "calculator" 12 %}{% else %}{% icon "flame" 12 %}{% endif %} {{ q.get_difficulty_display }}</span>{% endif %}</strong>
       <a class="btn btn-sm" href="{% url 'panel:question_edit' q.pk %}">{% icon "pencil" 14 %} Editar</a>
     </div>
     <ol>{% for c in q.choices.all %}<li class="{% if c.is_correct %}ok{% endif %}">{% if c.is_correct %}{% icon "circle-check" 16 %}{% else %}{% icon "circle" 16 "muted" %}{% endif %} {{ c.text }}</li>{% endfor %}</ol>

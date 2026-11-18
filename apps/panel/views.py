@@ -539,6 +539,7 @@ def _save_question(quiz, form, question=None):
         question = Question(quiz=quiz, order=quiz.questions.count() + 1)
     question.text = form.cleaned_data["text"]
     question.explanation = form.cleaned_data["explanation"]
+    question.difficulty = form.cleaned_data.get("difficulty") or question.difficulty
     question.save()
     question.choices.all().delete()
     for i, (text, ok) in enumerate(form.choices()):
@@ -551,7 +552,7 @@ def question_edit(request, pk):
     question = get_object_or_404(Question.objects.select_related("quiz__course"), pk=pk)
     course = question.quiz.course
     choices = list(question.choices.all())
-    initial = {"text": question.text, "explanation": question.explanation,
+    initial = {"text": question.text, "explanation": question.explanation, "difficulty": question.difficulty,
                "correct": next((i for i, c in enumerate(choices) if c.is_correct), 0)}
     initial.update({f"choice_{i}": c.text for i, c in enumerate(choices)})
     form = forms.QuestionForm(request.POST or None, initial=initial)

@@ -1,237 +1,254 @@
-import io
-import re
-import shutil
-import tempfile
-
-from django.core.management import call_command
-from django.test import TestCase, override_settings
-from django.urls import reverse
-
-from apps.accounts.models import User
-from apps.assessments.models import Attempt, Choice
-from apps.certificates.models import Certificate
-from apps.courses.models import Course, LessonProgress
-from apps.panel.importers import parse_question_text
-
-MEDIA = tempfile.mkdtemp(prefix="campus-test-media-")
-
-
-@override_settings(MEDIA_ROOT=MEDIA)
-class CampusFlowTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        call_command("seed_campus", "--demo", stdout=io.StringIO())
-        cls.admin = User.objects.create(username="ADMIN", first_name="Administrador", role=User.Role.ADMIN, is_superuser=True)
-        cls.learner = User.objects.create_user("tester", password="Prueba2026*", first_name="Ana", last_name="Prueba", supervisor="Fernando Abarca")
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(MEDIA, ignore_errors=True)
-
-    def test_public_pages(self):
-        for url in [reverse("core:landing"), reverse("accounts:login"), reverse("certificates:verify")]:
-            response = self.client.get(url)
-            self.assertEqual(response.status_code, 200, url)
-            self.assertIn("no-cache", response["Cache-Control"], url)
-
-    def test_replaced_media_is_not_kept_by_the_browser(self):
-        course = Course.objects.exclude(cover="").first()
-        url = course.cover.url
-        first = self.client.get(url)
-        self.assertEqual(first.status_code, 200)
-        self.assertIn("no-cache", first["Cache-Control"])
-        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 304)
-        # Se reemplaza la imagen con el mismo nombre: el navegador recibe la nueva.
-        with open(course.cover.path, "ab") as f:
-            f.write(b"0")
-        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 200)
-
-    def test_static_files_are_served_without_collectstatic(self):
-        page = self.client.get(reverse("core:landing")).content.decode()
-        css = re.search(r'href="(/static/css/campus\.css\?v=\w+)"', page)
-        self.assertIsNotNone(css, "el CSS debe enlazarse con su versión")
-        response = self.client.get(css[1])
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b".course-card.soon", b"".join(response.streaming_content))
-        self.assertRedirects(self.client.get(reverse("courses:home")), reverse("accounts:login") + "?next=" + reverse("courses:home"))
-
-    def test_learner_pages(self):
-        self.client.force_login(self.learner)
-        course = Course.objects.first()
-        lesson = course.lessons.first()
-        urls = [
-            reverse("courses:home"), reverse("courses:explore"), reverse("courses:explore") + "?q=duralin&marca=latina&orden=valorados",
-            reverse("courses:my_learning"), reverse("courses:my_learning") + "?tab=guardados",
-            course.path_steps.first().path.get_absolute_url(), course.get_absolute_url(), lesson.get_absolute_url(),
-            reverse("assessments:intro", args=[course.slug]), reverse("catalog:list"), reverse("catalog:list") + "?marca=induless",
-            reverse("core:ranking"), reverse("accounts:profile"),
-            reverse("accounts:public_profile", args=["mcevallos"]), reverse("certificates:list"),
-        ]
-        for url in urls:
-            self.assertEqual(self.client.get(url).status_code, 200, url)
-        self.assertEqual(self.client.get(reverse("panel:dashboard")).status_code, 302)
-
-    def test_full_course_flow_issues_certificate(self):
-        self.client.force_login(self.learner)
-        course = Course.objects.get(title__startswith="Duralin")
-        intro = reverse("assessments:intro", args=[course.slug])
-        # La evaluación está bloqueada hasta completar las lecciones.
-        self.client.post(intro)
-        self.assertFalse(Attempt.objects.filter(user=self.learner).exists())
-        for lesson in course.lessons:
-            r = self.client.post(reverse("courses:lesson_complete", args=[lesson.pk]))
-            self.assertEqual(r.status_code, 200)
-        self.assertEqual(LessonProgress.objects.filter(user=self.learner, completed_at__isnull=False).count(), course.lessons.count())
-        r = self.client.post(intro)
-        attempt = Attempt.objects.get(user=self.learner)
-        self.assertRedirects(r, reverse("assessments:take", args=[attempt.pk]))
-        self.assertEqual(self.client.get(reverse("assessments:take", args=[attempt.pk])).status_code, 200)
-        answers = {}
-        for qid in attempt.question_ids:
-            answers[f"q_{qid}"] = Choice.objects.get(question_id=qid, is_correct=True).pk
-        r = self.client.post(reverse("assessments:submit", args=[attempt.pk]), answers)
-        self.assertRedirects(r, reverse("assessments:result", args=[attempt.pk]))
-        attempt.refresh_from_db()
-        self.assertEqual(attempt.score, 100)
-        self.assertTrue(attempt.passed)
-        cert = Certificate.objects.get(user=self.learner, course=course)
-        self.assertEqual(self.client.get(reverse("assessments:result", args=[attempt.pk])).status_code, 200)
-        self.assertEqual(self.client.get(cert.get_absolute_url()).status_code, 200)
-        pdf = self.client.get(reverse("certificates:pdf", args=[cert.code]))
-        self.assertEqual(pdf["Content-Type"], "application/pdf")
-        self.assertTrue(b"".join(pdf.streaming_content).startswith(b"%PDF"))
-        self.client.logout()
-        verify = self.client.get(reverse("certificates:verify_code", args=[cert.code]))
-        self.assertContains(verify, "Certificado válido")
-
-    def test_wrong_answers_fail_and_autosave_validates(self):
-        self.client.force_login(self.learner)
-        course = Course.objects.get(title__startswith="Satinado")
-        for lesson in course.lessons:
-            self.client.post(reverse("courses:lesson_complete", args=[lesson.pk]))
-        self.client.post(reverse("assessments:intro", args=[course.slug]))
-        attempt = Attempt.objects.get(user=self.learner, quiz__course=course)
-        qid = attempt.question_ids[0]
-        wrong = Choice.objects.filter(question_id=qid, is_correct=False).first()
-        foreign = Choice.objects.exclude(question_id__in=attempt.question_ids).first()
-        r = self.client.post(reverse("assessments:autosave", args=[attempt.pk]),
-                             data={"answers": {str(qid): wrong.pk, str(attempt.question_ids[1]): foreign.pk}}, content_type="application/json")
-        self.assertTrue(r.json()["ok"])
-        attempt.refresh_from_db()
-        self.assertEqual(attempt.answers, {str(qid): wrong.pk})
-        self.client.post(reverse("assessments:submit", args=[attempt.pk]), {})
-        attempt.refresh_from_db()
-        self.assertFalse(attempt.passed)
-        self.assertFalse(Certificate.objects.filter(user=self.learner, course=course).exists())
-
-    def test_coming_soon_course_cannot_be_taken(self):
-        course = Course.objects.filter(is_published=True).first()
-        Course.objects.filter(pk=course.pk).update(coming_soon=True)
-        lesson = course.lessons.first()
-        self.client.force_login(self.learner)
-        explore = self.client.get(reverse("courses:explore"))
-        self.assertContains(explore, "Próximamente")
-        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
-        for url in [course.get_absolute_url(), lesson.get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
-            self.assertRedirects(self.client.get(url), reverse("courses:explore"))
-        self.assertRedirects(self.client.post(reverse("courses:start", args=[course.slug])), reverse("courses:explore"))
-        self.assertEqual(self.client.post(reverse("courses:lesson_complete", args=[lesson.pk])).status_code, 403)
-        self.assertFalse(course.enrollments.filter(user=self.learner).exists())
-        # Tampoco los gestores: lo preparan desde el Panel.
-        self.client.force_login(self.admin)
-        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
-
-    def test_course_closes_after_its_deadline(self):
-        from datetime import timedelta
-
-        from django.utils import timezone
-
-        course = Course.objects.filter(is_published=True).first()
-        hoy = timezone.localdate()
-        self.client.force_login(self.learner)
-        # Hoy es el último día: se puede tomar y la tarjeta lo avisa.
-        Course.objects.filter(pk=course.pk).update(available_until=hoy)
-        self.assertContains(self.client.get(reverse("courses:explore")), "Último día")
-        self.assertEqual(self.client.get(course.get_absolute_url()).status_code, 200)
-        # Desde mañana el plazo está cerrado: nadie entra, ni los gestores.
-        Course.objects.filter(pk=course.pk).update(available_until=hoy - timedelta(days=1))
-        explore = self.client.get(reverse("courses:explore"))
-        self.assertContains(explore, "Plazo cerrado")
-        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
-        for url in [course.get_absolute_url(), course.lessons.first().get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
-            response = self.client.get(url, follow=True)
-            self.assertRedirects(response, reverse("courses:explore"))
-            self.assertContains(response, "El plazo para tomar este curso terminó")
-        self.client.force_login(self.admin)
-        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
-        self.assertContains(self.client.get(reverse("panel:course_list")), "Plazo cerrado")
-
-    def test_panel_toggles_coming_soon(self):
-        course = Course.objects.filter(is_published=True).first()
-        self.client.force_login(self.admin)
-        builder = reverse("panel:course_builder", args=[course.pk])
-        toggle = reverse("panel:course_coming_soon", args=[course.pk])
-        self.assertContains(self.client.get(builder), "Marcar Próximamente")
-        # Desde la lista de cursos (todos los cursos tienen el botón) vuelve a la lista.
-        lista = reverse("panel:course_list")
-        html = self.client.get(lista).content.decode()
-        for pk in Course.objects.values_list("pk", flat=True):
-            self.assertIn(reverse("panel:course_coming_soon", args=[pk]), html)
-        self.assertRedirects(self.client.post(toggle, {"next": lista}), lista)
-        course.refresh_from_db()
-        self.assertTrue(course.coming_soon)
-        # Desde el contenido del curso vuelve al curso; un "next" externo se ignora.
-        self.assertRedirects(self.client.post(toggle, {"next": "https://otro-sitio.com/"}), builder)
-        course.refresh_from_db()
-        self.assertFalse(course.coming_soon)
-
-    def test_other_users_cannot_see_attempts_or_certificates(self):
-        cert = Certificate.objects.exclude(user=self.learner).first()
-        self.client.force_login(self.learner)
-        self.assertEqual(self.client.get(cert.get_absolute_url()).status_code, 404)
-        attempt = Attempt.objects.exclude(user=self.learner).first()
-        self.assertEqual(self.client.get(reverse("assessments:result", args=[attempt.pk])).status_code, 404)
-
-    def test_panel_pages(self):
-        self.client.force_login(self.admin)
-        course = Course.objects.first()
-        question = course.quiz.questions.first()
-        attempt = Attempt.objects.filter(finished_at__isnull=False).first()
-        urls = [
-            reverse("panel:dashboard"), reverse("panel:user_list"),
-            reverse("panel:course_list"), reverse("panel:course_create"), reverse("panel:course_builder", args=[course.pk]),
-            reverse("panel:course_edit", args=[course.pk]), reverse("panel:lesson_create", args=[course.pk]),
-            reverse("panel:lesson_edit", args=[course.pk, course.lessons.first().pk]), reverse("panel:questions", args=[course.pk]),
-            reverse("panel:question_edit", args=[question.pk]), reverse("panel:module_edit", args=[course.modules.first().pk]),
-            reverse("panel:path_list"), reverse("panel:path_create"), reverse("panel:results"), reverse("panel:results") + "?estado=aprobado&primer=1",
-            reverse("panel:attempt_report", args=[attempt.pk]), reverse("panel:certificates"), reverse("panel:product_list"),
-            reverse("panel:product_create"), reverse("panel:category_list"), reverse("panel:line_list"), reverse("panel:announcement_list"),
-            reverse("panel:course_delete", args=[course.pk]), reverse("accounts:team"),
-        ]
-        for url in urls:
-            self.assertEqual(self.client.get(url).status_code, 200, url)
-        xlsx = self.client.get(reverse("panel:results") + "?exportar=xlsx")
-        self.assertEqual(xlsx.status_code, 200)
-        self.assertTrue(xlsx.content.startswith(b"PK"))
-
-    def test_panel_imports_questions(self):
-        self.client.force_login(self.admin)
-        course = Course.objects.get(title__startswith="Induzinc")
-        before = course.quiz.questions.count()
-        text = "1. ¿Pregunta de prueba?\na) Uno\n*b) Dos\nc) Tres\n\n2. ¿Otra?\na) Sí\nb) No\nRespuesta: A"
-        self.client.post(reverse("panel:questions", args=[course.pk]), {"action": "import", "imp-text": text})
-        self.assertEqual(course.quiz.questions.count(), before + 2)
-
-    def test_learner_cannot_access_panel(self):
-        self.client.force_login(self.learner)
-        for url in [reverse("panel:dashboard"), reverse("panel:user_list"), reverse("panel:results")]:
-            self.assertNotEqual(self.client.get(url).status_code, 200, url)
-
-
-class ImporterTests(TestCase):
-    def test_parse_question_text(self):
-        questions, errors = parse_question_text("1. ¿A?\na) x\n*b) y\n2. ¿Sin correcta?\na) 1\nb) 2\n")
-        self.assertEqual(len(questions), 1)
-        self.assertEqual(questions[0]["choices"], [["x", False], ["y", True]])
+import io
+import re
+import shutil
+import tempfile
+
+from django.core.management import call_command
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
+
+from apps.accounts.models import User
+from apps.assessments.models import Attempt, Choice, Question
+from apps.assessments.services import pick_questions
+from apps.certificates.models import Certificate
+from apps.courses.models import Course, LessonProgress
+from apps.panel.importers import parse_question_text
+
+MEDIA = tempfile.mkdtemp(prefix="campus-test-media-")
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class CampusFlowTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_campus", "--demo", stdout=io.StringIO())
+        cls.admin = User.objects.create(username="ADMIN", first_name="Administrador", role=User.Role.ADMIN, is_superuser=True)
+        cls.learner = User.objects.create_user("tester", password="Prueba2026*", first_name="Ana", last_name="Prueba", supervisor="Fernando Abarca")
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(MEDIA, ignore_errors=True)
+
+    def test_public_pages(self):
+        for url in [reverse("core:landing"), reverse("accounts:login"), reverse("certificates:verify")]:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertIn("no-cache", response["Cache-Control"], url)
+
+    def test_replaced_media_is_not_kept_by_the_browser(self):
+        course = Course.objects.exclude(cover="").first()
+        url = course.cover.url
+        first = self.client.get(url)
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("no-cache", first["Cache-Control"])
+        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 304)
+        # Se reemplaza la imagen con el mismo nombre: el navegador recibe la nueva.
+        with open(course.cover.path, "ab") as f:
+            f.write(b"0")
+        self.assertEqual(self.client.get(url, HTTP_IF_NONE_MATCH=first["ETag"]).status_code, 200)
+
+    def test_static_files_are_served_without_collectstatic(self):
+        page = self.client.get(reverse("core:landing")).content.decode()
+        css = re.search(r'href="(/static/css/campus\.css\?v=\w+)"', page)
+        self.assertIsNotNone(css, "el CSS debe enlazarse con su versión")
+        response = self.client.get(css[1])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b".course-card.soon", b"".join(response.streaming_content))
+        self.assertRedirects(self.client.get(reverse("courses:home")), reverse("accounts:login") + "?next=" + reverse("courses:home"))
+
+    def test_learner_pages(self):
+        self.client.force_login(self.learner)
+        course = Course.objects.first()
+        lesson = course.lessons.first()
+        urls = [
+            reverse("courses:home"), reverse("courses:explore"), reverse("courses:explore") + "?q=duralin&marca=latina&orden=valorados",
+            reverse("courses:my_learning"), reverse("courses:my_learning") + "?tab=guardados",
+            course.path_steps.first().path.get_absolute_url(), course.get_absolute_url(), lesson.get_absolute_url(),
+            reverse("assessments:intro", args=[course.slug]), reverse("catalog:list"), reverse("catalog:list") + "?marca=induless",
+            reverse("core:ranking"), reverse("accounts:profile"),
+            reverse("accounts:public_profile", args=["mcevallos"]), reverse("certificates:list"),
+        ]
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        self.assertEqual(self.client.get(reverse("panel:dashboard")).status_code, 302)
+
+    def test_full_course_flow_issues_certificate(self):
+        self.client.force_login(self.learner)
+        course = Course.objects.get(title__startswith="Duralin")
+        intro = reverse("assessments:intro", args=[course.slug])
+        # La evaluación está bloqueada hasta completar las lecciones.
+        self.client.post(intro)
+        self.assertFalse(Attempt.objects.filter(user=self.learner).exists())
+        for lesson in course.lessons:
+            r = self.client.post(reverse("courses:lesson_complete", args=[lesson.pk]))
+            self.assertEqual(r.status_code, 200)
+        self.assertEqual(LessonProgress.objects.filter(user=self.learner, completed_at__isnull=False).count(), course.lessons.count())
+        r = self.client.post(intro)
+        attempt = Attempt.objects.get(user=self.learner)
+        self.assertRedirects(r, reverse("assessments:take", args=[attempt.pk]))
+        self.assertEqual(self.client.get(reverse("assessments:take", args=[attempt.pk])).status_code, 200)
+        answers = {}
+        for qid in attempt.question_ids:
+            answers[f"q_{qid}"] = Choice.objects.get(question_id=qid, is_correct=True).pk
+        r = self.client.post(reverse("assessments:submit", args=[attempt.pk]), answers)
+        self.assertRedirects(r, reverse("assessments:result", args=[attempt.pk]))
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.score, 100)
+        self.assertTrue(attempt.passed)
+        cert = Certificate.objects.get(user=self.learner, course=course)
+        self.assertEqual(self.client.get(reverse("assessments:result", args=[attempt.pk])).status_code, 200)
+        self.assertEqual(self.client.get(cert.get_absolute_url()).status_code, 200)
+        pdf = self.client.get(reverse("certificates:pdf", args=[cert.code]))
+        self.assertEqual(pdf["Content-Type"], "application/pdf")
+        self.assertTrue(b"".join(pdf.streaming_content).startswith(b"%PDF"))
+        self.client.logout()
+        verify = self.client.get(reverse("certificates:verify_code", args=[cert.code]))
+        self.assertContains(verify, "Certificado válido")
+
+    def test_wrong_answers_fail_and_autosave_validates(self):
+        self.client.force_login(self.learner)
+        course = Course.objects.get(title__startswith="Satinado")
+        for lesson in course.lessons:
+            self.client.post(reverse("courses:lesson_complete", args=[lesson.pk]))
+        self.client.post(reverse("assessments:intro", args=[course.slug]))
+        attempt = Attempt.objects.get(user=self.learner, quiz__course=course)
+        qid = attempt.question_ids[0]
+        wrong = Choice.objects.filter(question_id=qid, is_correct=False).first()
+        foreign = Choice.objects.exclude(question_id__in=attempt.question_ids).first()
+        r = self.client.post(reverse("assessments:autosave", args=[attempt.pk]),
+                             data={"answers": {str(qid): wrong.pk, str(attempt.question_ids[1]): foreign.pk}}, content_type="application/json")
+        self.assertTrue(r.json()["ok"])
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.answers, {str(qid): wrong.pk})
+        self.client.post(reverse("assessments:submit", args=[attempt.pk]), {})
+        attempt.refresh_from_db()
+        self.assertFalse(attempt.passed)
+        self.assertFalse(Certificate.objects.filter(user=self.learner, course=course).exists())
+
+    def test_coming_soon_course_cannot_be_taken(self):
+        course = Course.objects.filter(is_published=True).first()
+        Course.objects.filter(pk=course.pk).update(coming_soon=True)
+        lesson = course.lessons.first()
+        self.client.force_login(self.learner)
+        explore = self.client.get(reverse("courses:explore"))
+        self.assertContains(explore, "Próximamente")
+        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
+        for url in [course.get_absolute_url(), lesson.get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
+            self.assertRedirects(self.client.get(url), reverse("courses:explore"))
+        self.assertRedirects(self.client.post(reverse("courses:start", args=[course.slug])), reverse("courses:explore"))
+        self.assertEqual(self.client.post(reverse("courses:lesson_complete", args=[lesson.pk])).status_code, 403)
+        self.assertFalse(course.enrollments.filter(user=self.learner).exists())
+        # Tampoco los gestores: lo preparan desde el Panel.
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
+
+    def test_course_closes_after_its_deadline(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        course = Course.objects.filter(is_published=True).first()
+        hoy = timezone.localdate()
+        self.client.force_login(self.learner)
+        # Hoy es el último día: se puede tomar y la tarjeta lo avisa.
+        Course.objects.filter(pk=course.pk).update(available_until=hoy)
+        self.assertContains(self.client.get(reverse("courses:explore")), "Último día")
+        self.assertEqual(self.client.get(course.get_absolute_url()).status_code, 200)
+        # Desde mañana el plazo está cerrado: nadie entra, ni los gestores.
+        Course.objects.filter(pk=course.pk).update(available_until=hoy - timedelta(days=1))
+        explore = self.client.get(reverse("courses:explore"))
+        self.assertContains(explore, "Plazo cerrado")
+        self.assertNotContains(explore, f'href="{course.get_absolute_url()}"')
+        for url in [course.get_absolute_url(), course.lessons.first().get_absolute_url(), reverse("assessments:intro", args=[course.slug])]:
+            response = self.client.get(url, follow=True)
+            self.assertRedirects(response, reverse("courses:explore"))
+            self.assertContains(response, "El plazo para tomar este curso terminó")
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.get(course.get_absolute_url()), reverse("courses:explore"))
+        self.assertContains(self.client.get(reverse("panel:course_list")), "Plazo cerrado")
+
+    def test_panel_toggles_coming_soon(self):
+        course = Course.objects.filter(is_published=True).first()
+        self.client.force_login(self.admin)
+        builder = reverse("panel:course_builder", args=[course.pk])
+        toggle = reverse("panel:course_coming_soon", args=[course.pk])
+        self.assertContains(self.client.get(builder), "Marcar Próximamente")
+        # Desde la lista de cursos (todos los cursos tienen el botón) vuelve a la lista.
+        lista = reverse("panel:course_list")
+        html = self.client.get(lista).content.decode()
+        for pk in Course.objects.values_list("pk", flat=True):
+            self.assertIn(reverse("panel:course_coming_soon", args=[pk]), html)
+        self.assertRedirects(self.client.post(toggle, {"next": lista}), lista)
+        course.refresh_from_db()
+        self.assertTrue(course.coming_soon)
+        # Desde el contenido del curso vuelve al curso; un "next" externo se ignora.
+        self.assertRedirects(self.client.post(toggle, {"next": "https://otro-sitio.com/"}), builder)
+        course.refresh_from_db()
+        self.assertFalse(course.coming_soon)
+
+    def test_other_users_cannot_see_attempts_or_certificates(self):
+        cert = Certificate.objects.exclude(user=self.learner).first()
+        self.client.force_login(self.learner)
+        self.assertEqual(self.client.get(cert.get_absolute_url()).status_code, 404)
+        attempt = Attempt.objects.exclude(user=self.learner).first()
+        self.assertEqual(self.client.get(reverse("assessments:result", args=[attempt.pk])).status_code, 404)
+
+    def test_panel_pages(self):
+        self.client.force_login(self.admin)
+        course = Course.objects.first()
+        question = course.quiz.questions.first()
+        attempt = Attempt.objects.filter(finished_at__isnull=False).first()
+        urls = [
+            reverse("panel:dashboard"), reverse("panel:user_list"),
+            reverse("panel:course_list"), reverse("panel:course_create"), reverse("panel:course_builder", args=[course.pk]),
+            reverse("panel:course_edit", args=[course.pk]), reverse("panel:lesson_create", args=[course.pk]),
+            reverse("panel:lesson_edit", args=[course.pk, course.lessons.first().pk]), reverse("panel:questions", args=[course.pk]),
+            reverse("panel:question_edit", args=[question.pk]), reverse("panel:module_edit", args=[course.modules.first().pk]),
+            reverse("panel:path_list"), reverse("panel:path_create"), reverse("panel:results"), reverse("panel:results") + "?estado=aprobado&primer=1",
+            reverse("panel:attempt_report", args=[attempt.pk]), reverse("panel:certificates"), reverse("panel:product_list"),
+            reverse("panel:product_create"), reverse("panel:category_list"), reverse("panel:line_list"), reverse("panel:announcement_list"),
+            reverse("panel:course_delete", args=[course.pk]), reverse("accounts:team"),
+        ]
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        xlsx = self.client.get(reverse("panel:results") + "?exportar=xlsx")
+        self.assertEqual(xlsx.status_code, 200)
+        self.assertTrue(xlsx.content.startswith(b"PK"))
+
+    def test_panel_imports_questions(self):
+        self.client.force_login(self.admin)
+        course = Course.objects.get(title__startswith="Induzinc")
+        before = course.quiz.questions.count()
+        text = "1. ¿Pregunta de prueba?\na) Uno\n*b) Dos\nc) Tres\n\n2. ¿Otra?\na) Sí\nb) No\nRespuesta: A"
+        self.client.post(reverse("panel:questions", args=[course.pk]), {"action": "import", "imp-text": text})
+        self.assertEqual(course.quiz.questions.count(), before + 2)
+
+    def test_learner_cannot_access_panel(self):
+        self.client.force_login(self.learner)
+        for url in [reverse("panel:dashboard"), reverse("panel:user_list"), reverse("panel:results")]:
+            self.assertNotEqual(self.client.get(url).status_code, 200, url)
+
+
+class ImporterTests(TestCase):
+    def test_parse_question_text(self):
+        questions, errors = parse_question_text("1. ¿A?\na) x\n*b) y\n2. ¿Sin correcta?\na) 1\nb) 2\n")
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0]["choices"], [["x", False], ["y", True]])
         self.assertEqual(len(errors), 1)
+
+
+class PickQuestionsTests(SimpleTestCase):
+    def test_every_attempt_has_two_hard_and_one_calculation_question(self):
+        B, D, C = Question.Difficulty.BASICA, Question.Difficulty.DIFICIL, Question.Difficulty.CALCULO
+        bank = [Question(pk=i, difficulty=d) for i, d in enumerate([B] * 20 + [D] * 4 + [C] * 3, start=1)]
+        for _ in range(200):
+            chosen = pick_questions(bank, 10)
+            levels = [q.difficulty for q in chosen]
+            self.assertEqual(len(set(q.pk for q in chosen)), 10)
+            self.assertGreaterEqual(levels.count(D), 2)
+            self.assertGreaterEqual(levels.count(C), 1)
+
+    def test_small_bank_without_hard_questions_still_works(self):
+        bank = [Question(pk=i) for i in range(1, 6)]
+        self.assertEqual(len(pick_questions(bank, 10)), 5)
